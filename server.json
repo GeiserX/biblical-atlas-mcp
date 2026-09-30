@@ -1,0 +1,50 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.GeiserX/biblical-atlas-mcp",
+  "description": "Spanish Bible atlas as MCP tools: people, places, events, passages, each linked to its source",
+  "repository": {
+    "url": "https://github.com/GeiserX/biblical-atlas-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "biblical-atlas-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "BIBLICAL_ATLAS_DATA_URL",
+          "description": "Data file URL (default https://biblical-atlas.geiser.cloud/data.json)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "BIBLICAL_ATLAS_DATA_FILE",
+          "description": "Path to a local copy of the data file; no network when set",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "BIBLICAL_ATLAS_CACHE_DIR",
+          "description": "Disk cache directory, or off",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "BIBLICAL_ATLAS_REFRESH",
+          "description": "How long a copy is served before asking again (default 1h, 0 = never)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

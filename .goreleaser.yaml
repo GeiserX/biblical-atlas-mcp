@@ -1,0 +1,46 @@
+version: 2
+
+project_name: biblical-atlas-mcp
+
+release:
+  github:
+    owner: GeiserX
+    name: biblical-atlas-mcp
+  draft: false
+  prerelease: auto
+
+builds:
+  - id: bin
+    main: ./cmd/server
+    binary: biblical-atlas-mcp
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+      - -X github.com/geiserx/biblical-atlas-mcp/version.Version={{ .Version }}
+      - -X github.com/geiserx/biblical-atlas-mcp/version.Commit={{ .ShortCommit }}
+      - -X github.com/geiserx/biblical-atlas-mcp/version.Date={{ .Date }}
+
+archives:
+  - id: dist
+    ids: [bin]
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ .Version }}-snapshot-{{ .ShortCommit }}"
+
+changelog:
+  groups:
+    - title: Features
+      regexp: '^feat'
+    - title: Fixes
+      regexp: '^fix'

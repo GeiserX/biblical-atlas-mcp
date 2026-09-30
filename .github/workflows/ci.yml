@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "Not gofmt-ed:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - run: go vet ./...
+      - run: go test -race -coverprofile=coverage.out ./...
+      - name: npm wrapper checks
+        run: node --test postinstall.test.js
+      - name: Upload coverage
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v7
+        with:
+          files: coverage.out
+          fail_ci_if_error: false
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --snapshot --clean --skip=publish
+      - name: Archives match what postinstall.js downloads
+        run: |
+          first=(dist/biblical-atlas-mcp_*_linux_amd64.tar.gz)
+          version="${first[0]#dist/biblical-atlas-mcp_}"
+          version="${version%_linux_amd64.tar.gz}"
+          for target in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64 windows_amd64 windows_arm64; do
+            ext=tar.gz
+            case "$target" in windows_*) ext=zip ;; esac
+            name="biblical-atlas-mcp_${version}_${target}.${ext}"
+            test -f "dist/$name" || { echo "missing dist/$name"; exit 1; }
+            grep -q "  $name\$" dist/checksums.txt || { echo "$name not in checksums.txt"; exit 1; }
+          done
+      - name: npm package holds only the wrapper
+        run: |
+          npm pack --dry-run --json --ignore-scripts > pack.json
+          got="$(node -e 'const p=require("./pack.json")[0];console.log(p.files.map(f=>f.path).sort().join(" "))')"
+          want="LICENSE README.md package.json postinstall.js run.js"
+          if [ "$got" != "$want" ]; then
+            echo "npm pack lists: $got"
+            echo "want:           $want"
+            exit 1
+          fi
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v4
+      - name: Build linux/amd64 and linux/arm64 (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha,scope=image
+          cache-to: type=gha,mode=max,scope=image
