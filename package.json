@@ -1,0 +1,39 @@
+{
+  "name": "biblical-atlas-mcp",
+  "mcpName": "io.github.GeiserX/biblical-atlas-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for biblical-atlas, a Spanish Bible atlas: people, places, events, passages and their sources",
+  "license": "MIT",
+  "author": "GeiserX",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GeiserX/biblical-atlas-mcp.git"
+  },
+  "homepage": "https://github.com/GeiserX/biblical-atlas-mcp",
+  "bugs": {
+    "url": "https://github.com/GeiserX/biblical-atlas-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "bible",
+    "bible-atlas",
+    "biblical-geography",
+    "timeline",
+    "spanish"
+  ],
+  "bin": {
+    "biblical-atlas-mcp": "run.js"
+  },
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "files": [
+    "run.js",
+    "postinstall.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
