@@ -364,7 +364,7 @@ A file is accepted when all of these hold:
 - `formato` equals `biblical-atlas/v0` or `biblical-earth/v0`, two ids of one format. Any other value fails with `unsupported data format "<value>": this server reads biblical-atlas/v0. Upgrade biblical-atlas-mcp.` A missing `formato` fails the same way with an empty value.
 - `personas`, `lugares` and `fuentes` are non-empty objects, and `eventos` and `libros` are non-empty arrays.
 
-The known-format set is one Go slice, so adding `v1` later is a one-line change plus whatever the decoder needs. Records that point at a missing id are kept. The dangling ref is dropped from the output and counted in a load-time log line. A null entry in any array is dropped. A citation in the data that does not parse, names a chapter or verse its book lacks, or ends before it starts, is skipped and counted.
+The known-format set is one Go slice, so adding `v1` later is a one-line change plus whatever the decoder needs. Records that point at a missing id are kept. The dangling ref is dropped from the output and counted in a load-time log line. A null entry in any array is dropped, and so is a later entry that repeats an id: the first one wins. A citation in the data that does not parse, names a chapter or verse its book lacks, or ends before it starts, is skipped and counted.
 
 ### 5.4 Indexes, built once per load
 

@@ -586,14 +586,17 @@ func Decode(body []byte) (*File, error) {
 	return f, nil
 }
 
-// compact drops null entries and entries without an id.
+// compact drops null entries, entries without an id and repeats of an id,
+// keeping the first. The indexes address entries by position and records by
+// id, so the two must name the same entry.
 func compact[T any, P interface {
 	*T
 	id() string
 }](in []P) []P {
-	out := in[:0]
+	out, seen := in[:0], map[string]bool{}
 	for _, x := range in {
-		if x != nil && x.id() != "" {
+		if x != nil && x.id() != "" && !seen[x.id()] {
+			seen[x.id()] = true
 			out = append(out, x)
 		}
 	}

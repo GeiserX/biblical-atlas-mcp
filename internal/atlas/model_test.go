@@ -1,6 +1,7 @@
 package atlas
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -58,6 +59,42 @@ func TestDecodeFormatIDs(t *testing.T) {
 				t.Fatalf("got %v, want %q", err, c.want)
 			}
 		})
+	}
+}
+
+// A repeated event id keeps the first entry only, so every position the
+// indexes hold names the same event as the record for its id.
+func TestDecodeDropsRepeatedIDs(t *testing.T) {
+	var top map[string]any
+	if err := json.Unmarshal(readFixture(t, "data.json"), &top); err != nil {
+		t.Fatal(err)
+	}
+	events := top["eventos"].([]any)
+	top["eventos"] = append(events, map[string]any{
+		"id": "creacion-de-adan", "titulo": "Otra creación", "personas": []any{"timoteo"},
+		"lugares": []any{"listra"}, "pasajes": []any{"Hch 16:1"},
+	})
+	body, err := json.Marshal(top)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := Decode(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Events) != len(events) {
+		t.Fatalf("%d events, want %d", len(f.Events), len(events))
+	}
+	s := Build(f)
+	for i, e := range f.Events {
+		if r := s.Rec(TypeEvent, e.ID); r == nil || r.Value != e {
+			t.Fatalf("position %d (%s) is not the event its record holds", i, e.ID)
+		}
+	}
+	for _, i := range s.EventsByPerson["timoteo"] {
+		if f.Events[i].ID == "creacion-de-adan" {
+			t.Fatal("the repeated entry was indexed")
+		}
 	}
 }
 
