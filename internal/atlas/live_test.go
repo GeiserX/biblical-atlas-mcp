@@ -42,11 +42,20 @@ func TestLiveDataFile(t *testing.T) {
 			}
 		}
 	}
+	// Every chapter link the server writes reads back as its own chapter.
+	for _, b := range snap.File.Books {
+		if c, ok := snap.Books.chapterOfURL(ChapterURL(b, 1)); !ok || c != (Chapter{b.Num, 1}) {
+			t.Errorf("%s: %s reads back as %v %v", b.Name, ChapterURL(b, 1), c, ok)
+		}
+	}
+	for _, w := range snap.Warnings() {
+		t.Error(w)
+	}
 	for id, src := range snap.File.Sources {
 		if src != nil && !strings.HasPrefix(src.URL, "https://") {
 			t.Errorf("source %s has a non-https URL %q", id, src.URL)
 		}
 	}
-	t.Logf("generated %s: %d people, %d places, %d events; %d citations not parsed",
-		snap.Generated, len(snap.File.People), len(snap.File.Places), len(snap.File.Events), snap.Stats.BadCitations)
+	t.Logf("generated %s: %d people, %d places, %d events; %d citations not parsed; %d chapter sources",
+		snap.Generated, len(snap.File.People), len(snap.File.Places), len(snap.File.Events), snap.Stats.BadCitations, len(snap.SourceChapter))
 }

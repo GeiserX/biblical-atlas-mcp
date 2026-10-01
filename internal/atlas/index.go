@@ -1,6 +1,7 @@
 package atlas
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -480,7 +481,7 @@ func (s *Snapshot) indexPassages() {
 		if src == nil {
 			continue
 		}
-		if c, ok := chapterOfURL(src.URL); ok {
+		if c, ok := s.Books.chapterOfURL(src.URL); ok {
 			s.SourceChapter[id] = c
 		}
 	}
@@ -589,6 +590,18 @@ func (s *Snapshot) indexPassages() {
 		s.SortKeys(keys)
 		s.CitedBy[c] = keys
 	}
+}
+
+// Warnings lists what the load found wrong with the file as a whole. Today
+// that is one case: the file has sources but none of them is a chapter link
+// the server can read, so every chapter lookup through sources comes back
+// empty. That happens when the atlas moves its links to a shape this server
+// does not know yet.
+func (s *Snapshot) Warnings() []string {
+	if len(s.File.Sources) > 0 && len(s.SourceChapter) == 0 {
+		return []string{fmt.Sprintf("none of the %d sources is a Bible chapter link this server can read, so cited_by and every chapter found through sources are empty; the data file may use a link shape this server version does not know", len(s.File.Sources))}
+	}
+	return nil
 }
 
 // SortKeys sorts record keys by type order, then name, then id.

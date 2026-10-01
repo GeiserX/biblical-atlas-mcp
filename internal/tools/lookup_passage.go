@@ -19,7 +19,7 @@ func lookupPassageTool() Tool {
 	}
 	return Tool{
 		Def: newTool("lookup_passage", "Look up a Bible passage",
-			`What the atlas has on a Bible passage: the events whose passages overlap it, the people and places in those events, and the letters, journey stops and other records that cite the chapter. Takes a Spanish reference such as "Hch 16:1", "Hechos 16", "2 Reyes 3", "Gé 2:7, 8", "Hch 13:1–14:28" or just a book, "Rut". Returns the link to read the chapter on wol.jw.org.`,
+			`What the atlas has on a Bible passage: the events whose passages overlap it, the people and places in those events, and the letters, journey stops and other records that cite the chapter. Takes a Spanish reference such as "Hch 16:1", "Hechos 16", "2 Reyes 3", "Gé 2:7, 8", "Hch 13:1–14:28" or just a book, "Rut". Returns the link to read the passage on jw.org, at its verse.`,
 			append(opts, pagingOptions(20, maxLimit)...)...),
 		Handle: lookupPassage,
 	}
@@ -95,7 +95,7 @@ func lookupPassage(c *Call) (*obj, error) {
 	if !r.WholeBook && r.C1 == r.C2 {
 		passage.keep("url", passageURL(b, r.C1))
 	}
-	passage.keep("read_url", atlas.ChapterURL(b.Num, r.C1))
+	passage.keep("read_url", atlas.PassageURL([]atlas.Range{r}))
 
 	out := page(s, len(matched), offset, limit, results).keep("passage", passage)
 	fully := s.FullyRead[b.Slug]

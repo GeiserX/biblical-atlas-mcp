@@ -34,11 +34,16 @@ func mcpServer(t *testing.T) *server.MCPServer {
 // registration are part of every test.
 func call(t *testing.T, name string, args map[string]any) (string, bool) {
 	t.Helper()
+	return callOn(t, mcpServer(t), name, args)
+}
+
+func callOn(t *testing.T, srv *server.MCPServer, name string, args map[string]any) (string, bool) {
+	t.Helper()
 	msg, _ := json.Marshal(map[string]any{
 		"jsonrpc": "2.0", "id": 1, "method": "tools/call",
 		"params": map[string]any{"name": name, "arguments": args},
 	})
-	resp := mcpServer(t).HandleMessage(context.Background(), msg)
+	resp := srv.HandleMessage(context.Background(), msg)
 	raw, _ := json.Marshal(resp)
 	var out struct {
 		Result struct {
@@ -130,7 +135,7 @@ var cases = []toolCase{
 		want: []string{`"type":"place","id":"adan"`, `"url":"https://biblical-atlas.geiser.cloud/#sel=lugar:adan"`}},
 	{name: "event with roles", tool: "get_record", args: map[string]any{"type": "event", "id": "creacion-de-adan"},
 		want: []string{`"date":{"text":"4026 a.e.c.","from":-4026,"to":-4026`, `"roles":[{"person":{"type":"person","id":"adan"`, `"role":"born"`,
-			`"passages":[{"text":"Gé 2:7, 8","url":"https://wol.jw.org/es/wol/b/r4/lp-s/nwtsty/1/2"}]`, `"kind":"birth"`, `"narrative_order":{"series":"genesis","order":1}`}},
+			`"passages":[{"text":"Gé 2:7, 8","url":"https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/G%C3%A9nesis/2/#v1002007-v1002008"}]`, `"kind":"birth"`, `"narrative_order":{"series":"genesis","order":1}`}},
 	{name: "event with alternatives", tool: "get_record", args: map[string]any{"type": "event", "id": "arresto-de-pablo-en-jerusalen"},
 		want: []string{`"month":"sivan","season":"primavera"`, `"alternatives":[{"date":{"text":"57 e.c.","from":57,"to":57,"kind":"anclada","precision":"año","chronology":"secular"}`,
 			`"periods":[{"type":"period","id":"potencia-romana"`}},
@@ -151,10 +156,10 @@ var cases = []toolCase{
 		want:    []string{`"found_at":{"type":"place","id":"jerusalen"`, `"relates_to":[{"type":"person","id":"anas"`, `"object_date":{"text":"c. 30 e.c."`, `"identification":"probable"`},
 		notWant: []string{"no-existe"}},
 	{name: "tour", tool: "get_record", args: map[string]any{"type": "tour", "id": "cartas-y-ciudades"},
-		want: []string{`"about":{"type":"event","id":"formacion-de-pablo"`, `"year":-2`, `"about":{"type":"passage","id":"hch-16","name":"Hechos 16","url":"https://biblical-atlas.geiser.cloud/#sel=pasaje:hch-16"`,
+		want: []string{`"about":{"type":"event","id":"formacion-de-pablo"`, `"year":-2`, `"about":{"type":"passage","id":"hch-16","name":"Hechos 16","url":"https://biblical-atlas.geiser.cloud/#sel=pasaje:hch-16","read_url":"https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/16/"`,
 			`"question":{"text":"¿Desde qué ciudad? (prueba)","options":["Roma","Atenas"],"answer":"Roma"`, `"not_known":"Dato de prueba que no se sabe."`}},
 	{name: "book not read", tool: "get_record", args: map[string]any{"type": "book", "id": "hechos"},
-		want:    []string{`"number":44,"abbreviation":"Hch","chapters":28`, `"omitted_verses":[{"chapter":8,"verses":[37]}`, `"fully_read":false`, `"read_url":"https://wol.jw.org/es/wol/b/r4/lp-s/nwtsty/44/1"`},
+		want:    []string{`"number":44,"abbreviation":"Hch","chapters":28`, `"omitted_verses":[{"chapter":8,"verses":[37]}`, `"fully_read":false`, `"read_url":"https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/1/"`},
 		notWant: []string{`"coverage"`}},
 	{name: "book read", tool: "get_record", args: map[string]any{"type": "book", "id": "genesis"},
 		want: []string{`"coverage":{"chapters":50,"chapters_read":50,"verses":1533,"verses_read":1533}`, `"fully_read":true`, `"covers":{"text":"hasta 1657 a.e.c.","to":-1657`}},
@@ -249,7 +254,7 @@ var cases = []toolCase{
 
 	// lookup_passage
 	{name: "verse", tool: "lookup_passage", args: map[string]any{"reference": "Hch 16:1"},
-		want: []string{`"total":1`, `"id":"timoteo-se-une-a-pablo"`, `"passage":{"book":{"type":"book","id":"hechos"`, `"chapter":16,"verse":1,"to_chapter":16,"to_verse":1,"text":"Hch 16:1","url":"https://biblical-atlas.geiser.cloud/#sel=pasaje:hch-16","read_url":"https://wol.jw.org/es/wol/b/r4/lp-s/nwtsty/44/16"`,
+		want: []string{`"total":1`, `"id":"timoteo-se-une-a-pablo"`, `"passage":{"book":{"type":"book","id":"hechos"`, `"chapter":16,"verse":1,"to_chapter":16,"to_verse":1,"text":"Hch 16:1","url":"https://biblical-atlas.geiser.cloud/#sel=pasaje:hch-16","read_url":"https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/16/#v44016001"`,
 			`"fully_read":false,"notice":"The atlas has not yet read this book verse by verse.`, `"people":[{"type":"person","id":"eunice"`, `"people_total":3`,
 			`"cited_by":[{"type":"person","id":"eunice"`, `{"type":"tour","id":"cartas-y-ciudades"`, `"cited_by_total":4`}},
 	{name: "read book", tool: "lookup_passage", args: map[string]any{"reference": "Gé 2:8"},
@@ -267,7 +272,7 @@ var cases = []toolCase{
 	{name: "bookless continuation", tool: "lookup_passage", args: map[string]any{"reference": "Hch 22:1"},
 		want: []string{`"total":1`, `"id":"arresto-de-pablo-en-jerusalen"`}},
 	{name: "whole book", tool: "lookup_passage", args: map[string]any{"reference": "Rut"},
-		want: []string{`"total":1`, `"text":"Rut","read_url":"https://wol.jw.org/es/wol/b/r4/lp-s/nwtsty/8/1"`}, notWant: []string{`#sel=pasaje`}},
+		want: []string{`"total":1`, `"text":"Rut","read_url":"https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/rut/1/"`}, notWant: []string{`#sel=pasaje`}},
 	{name: "nothing in a single-chapter book", tool: "lookup_passage", args: map[string]any{"reference": "Flm 5"},
 		want: []string{`"total":0`, `"text":"Flm 5"`, `"notice"`}},
 	{name: "unknown book", tool: "lookup_passage", args: map[string]any{"reference": "Hechs 16"}, wantErr: `unknown Bible book "Hechs". Close book names: Hechos`},
@@ -305,8 +310,8 @@ var cases = []toolCase{
 
 	// dataset_info
 	{name: "dataset info", tool: "dataset_info", args: map[string]any{},
-		want:    []string{`"format":"biblical-atlas/v0","generated":"2026-09-30"`, `"stale":false`, `"people":8`, `"books_fully_read":["genesis","rut"]`, `"books_not_yet_read":["hechos","2-timoteo","filemon"]`, `"site":"https://biblical-atlas.geiser.cloud/"`},
-		notWant: []string{`"refresh_error"`}},
+		want:    []string{`"format":"biblical-atlas/v0","generated":"2026-09-30"`, `"stale":false`, `"people":8`, `"books_fully_read":["genesis","rut"]`, `"books_not_yet_read":["hechos","2-timoteo","filemon"]`, `"site":"https://biblical-atlas.geiser.cloud/"`, `"chapter_sources":10`},
+		notWant: []string{`"refresh_error"`, `"warnings"`}},
 }
 
 func TestTools(t *testing.T) {
@@ -382,7 +387,7 @@ func TestAnnotations(t *testing.T) {
 
 // TestLinks checks every URL any tool answer holds.
 func TestLinks(t *testing.T) {
-	allowed := []string{SiteBase, "https://wol.jw.org/", "https://www.openbible.info/"}
+	allowed := []string{SiteBase, "https://www.jw.org/", "https://wol.jw.org/", "https://www.openbible.info/"}
 	seen := 0
 	for _, c := range cases {
 		if c.wantErr != "" {
@@ -420,6 +425,37 @@ func walkURLs(v any, f func(key, u string)) {
 	case []any:
 		for _, y := range x {
 			walkURLs(y, f)
+		}
+	}
+}
+
+// TestJWOrgLinks runs the tools on the fixture copy whose chapter sources
+// link to jw.org instead of wol.jw.org: the same passages are found and
+// cited, and dataset_info counts the same chapter sources.
+func TestJWOrgLinks(t *testing.T) {
+	store := atlas.NewStore(atlas.Options{File: "../atlas/testdata/jworg.json"})
+	if _, err := store.Snapshot(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	s := server.NewMCPServer("test", "0", server.WithToolCapabilities(false))
+	Register(s, store)
+	for _, c := range []struct {
+		tool string
+		args map[string]any
+		want []string
+	}{
+		{"lookup_passage", map[string]any{"reference": "Hch 16:1"}, []string{`"id":"timoteo-se-une-a-pablo"`, `"cited_by":[{"type":"person","id":"eunice"`, `"cited_by_total":4`}},
+		{"lookup_passage", map[string]any{"reference": "Hch 9"}, []string{`"cited_by":[`}},
+		{"dataset_info", map[string]any{}, []string{`"chapter_sources":10`}},
+	} {
+		text, isErr := callOn(t, s, c.tool, c.args)
+		if isErr {
+			t.Fatalf("%s %v: %s", c.tool, c.args, text)
+		}
+		for _, w := range c.want {
+			if !strings.Contains(text, w) {
+				t.Errorf("%s %v: want %s in %s", c.tool, c.args, w, text)
+			}
 		}
 	}
 }

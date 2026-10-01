@@ -2,6 +2,7 @@ package atlas
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -138,17 +139,173 @@ func TestOverlaps(t *testing.T) {
 	}
 }
 
+// jw is the study Bible prefix, written out so the tests do not trust the
+// constant they check.
+const jw = "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/"
+
+// TestChapterOfURL reads a chapter from both link shapes the atlas has used:
+// wol.jw.org with the book number, and the jw.org study Bible with the book
+// name.
 func TestChapterOfURL(t *testing.T) {
+	s := fixture(t)
 	for u, want := range map[string]Chapter{
 		"https://wol.jw.org/es/wol/b/r4/lp-s/nwtsty/44/16": {44, 16},
 		"https://wol.jw.org/es/wol/b/r4/lp-s/nwt/1/2":      {1, 2},
+		jw + "hechos/16/":                    {44, 16},
+		jw + "hechos/16":                     {44, 16},
+		jw + "hechos/9/#v44009001-v44009009": {44, 9},
+		jw + "G%C3%A9nesis/2/":               {1, 2},
+		jw + "2-timoteo/1/":                  {55, 1},
+		jw + "Filem%C3%B3n/1/":               {57, 1},
+		"https://www.jw.org/es/biblioteca/biblia/nwt/libros/rut/1/":            {8, 1},
+		"https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/Rut/4/": {8, 4},
 	} {
-		if got, ok := chapterOfURL(u); !ok || got != want {
-			t.Errorf("chapterOfURL(%q) = %v %v", u, got, ok)
+		if got, ok := s.Books.chapterOfURL(u); !ok || got != want {
+			t.Errorf("chapterOfURL(%q) = %v %v, want %v", u, got, ok, want)
 		}
 	}
-	if _, ok := chapterOfURL("https://wol.jw.org/es/wol/d/r4/lp-s/1200003406"); ok {
-		t.Error("a publication URL parsed as a chapter")
+	for _, u := range []string{
+		"https://wol.jw.org/es/wol/d/r4/lp-s/1200003406",
+		"https://www.jw.org/es/biblioteca/libros/Perspicacia-para-comprender-las-Escrituras/No%C3%A1/",
+		"https://www.jw.org/es/biblioteca/biblia/biblia-estudio/apendice-b/ultima-semana-de-jesus-8-a-11-de-nisan/",
+		jw + "hechos/",
+		jw + "hechos/16/notas/",
+		jw + "levitico/1/",
+		jw + "G%zz/1/",
+		"https://example.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/16/",
+	} {
+		if c, ok := s.Books.chapterOfURL(u); ok {
+			t.Errorf("chapterOfURL(%q) = %v, want no chapter", u, c)
+		}
+	}
+}
+
+// TestChapterURL writes the book the way jw.org does: an accented name as
+// it is, hyphenated and escaped; a plain one hyphenated and in lower case.
+func TestChapterURL(t *testing.T) {
+	cantar := &Book{Num: 22, Slug: "cantar-de-los-cantares", Name: "El Cantar de los Cantares"}
+	cronicas := &Book{Num: 13, Slug: "1-cronicas", Name: "1 Crónicas"}
+	s := fixture(t)
+	for _, c := range []struct {
+		b    *Book
+		ch   int
+		want string
+	}{
+		{s.Books.Lookup("Génesis"), 2, jw + "G%C3%A9nesis/2/"},
+		{s.Books.Lookup("Hechos"), 16, jw + "hechos/16/"},
+		{s.Books.Lookup("2 Timoteo"), 1, jw + "2-timoteo/1/"},
+		{cantar, 2, jw + "el-cantar-de-los-cantares/2/"},
+		{cronicas, 2, jw + "1-Cr%C3%B3nicas/2/"},
+	} {
+		if got := ChapterURL(c.b, c.ch); got != c.want {
+			t.Errorf("ChapterURL(%s, %d) = %q, want %q", c.b.Name, c.ch, got, c.want)
+		}
+	}
+	// Every link the server writes reads back as its own chapter.
+	books := append([]*Book{cantar, cronicas}, s.Books.books...)
+	table := newBookTable(books)
+	for _, b := range books {
+		if got, ok := table.chapterOfURL(ChapterURL(b, 1)); !ok || got != (Chapter{b.Num, 1}) {
+			t.Errorf("%s: %s reads back as %v %v", b.Name, ChapterURL(b, 1), got, ok)
+		}
+	}
+}
+
+// TestPassageURL follows the site: one verse or a range gets its anchor, a
+// list runs from its first to its last verse, a passage that crosses into
+// another chapter opens its first chapter to that chapter's last verse, and
+// a whole chapter has no anchor.
+func TestPassageURL(t *testing.T) {
+	s := fixture(t)
+	for _, c := range []struct{ ref, want string }{
+		{"Hch 16:1", jw + "hechos/16/#v44016001"},
+		{"Hch 16:1-5", jw + "hechos/16/#v44016001-v44016005"},
+		{"Gé 2:7, 8", jw + "G%C3%A9nesis/2/#v1002007-v1002008"},
+		{"Gé 6:1, 2, 4", jw + "G%C3%A9nesis/6/#v1006001-v1006004"},
+		{"Hch 16:1, 5", jw + "hechos/16/#v44016001-v44016005"},
+		{"Hch 13:5–14:2", jw + "hechos/13/#v44013005-v44013052"},
+		{"Hch 13:1–14:28", jw + "hechos/13/"},
+		{"Hch 16:1-40", jw + "hechos/16/"},
+		{"Hch 16", jw + "hechos/16/"},
+		{"Gé 5-7", jw + "G%C3%A9nesis/5/"},
+		{"Flm 10", jw + "Filem%C3%B3n/1/#v57001010"},
+		{"Flm 4-7", jw + "Filem%C3%B3n/1/#v57001004-v57001007"},
+		{"Flm", jw + "Filem%C3%B3n/1/"},
+		{"Rut", jw + "rut/1/"},
+	} {
+		rs, err := s.Books.ParseRefs(c.ref)
+		if err != nil {
+			t.Fatalf("%s: %v", c.ref, err)
+		}
+		if got := PassageURL(rs); got != c.want {
+			t.Errorf("PassageURL(%s) = %q, want %q", c.ref, got, c.want)
+		}
+	}
+	if got := PassageURL(nil); got != "" {
+		t.Errorf("PassageURL(nil) = %q", got)
+	}
+	// A data citation that names a chapter or verse its book lacks gets no
+	// link, and never panics.
+	for _, ref := range []string{"Hch 0:1", "Hch 0", "Hch 29:1", "Hch 16:99", "Hch 16:1, 99"} {
+		rs, err := s.Books.ParseRefs(ref)
+		if err != nil {
+			t.Fatalf("%s: %v", ref, err)
+		}
+		if got := PassageURL(rs); got != "" {
+			t.Errorf("PassageURL(%s) = %q, want no link", ref, got)
+		}
+	}
+}
+
+// TestSourceChaptersBothShapes loads the fixture with wol.jw.org chapter
+// links and its copy with jw.org links: both give the same chapter index.
+func TestSourceChaptersBothShapes(t *testing.T) {
+	old := fixture(t)
+	f, err := Decode(readFixture(t, "jworg.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	next := Build(f)
+	if len(old.SourceChapter) != 10 {
+		t.Errorf("old shape: %d chapter sources, want 10", len(old.SourceChapter))
+	}
+	if !reflect.DeepEqual(next.SourceChapter, old.SourceChapter) {
+		t.Errorf("jw.org shape: chapter sources %v, want %v", next.SourceChapter, old.SourceChapter)
+	}
+	if !reflect.DeepEqual(next.CitedBy, old.CitedBy) {
+		t.Errorf("jw.org shape: cited_by index differs from the old shape")
+	}
+	if len(next.CitedBy[Chapter{44, 16}]) == 0 {
+		t.Error("jw.org shape: nothing cites Hechos 16")
+	}
+	if w := next.Warnings(); len(w) != 0 {
+		t.Errorf("jw.org shape warns: %v", w)
+	}
+}
+
+// TestEmptyChapterIndexWarns: sources whose links the server cannot read as
+// chapters must not leave the chapter index empty without a word.
+func TestEmptyChapterIndexWarns(t *testing.T) {
+	f, err := Decode(readFixture(t, "data.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, src := range f.Sources {
+		if src != nil {
+			src.URL = "https://example.org/biblia/" + src.Title
+		}
+	}
+	s := Build(f)
+	if len(s.SourceChapter) != 0 {
+		t.Fatalf("chapter sources %v, want none", s.SourceChapter)
+	}
+	w := s.Warnings()
+	if len(w) != 1 || !strings.Contains(w[0], "chapter") {
+		t.Errorf("warnings %q, want one about the chapter index", w)
+	}
+	f.Sources = nil
+	if w := Build(f).Warnings(); len(w) != 0 {
+		t.Errorf("no sources at all warns: %v", w)
 	}
 }
 

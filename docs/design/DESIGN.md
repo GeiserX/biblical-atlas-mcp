@@ -1,6 +1,6 @@
 # biblical-atlas-mcp design
 
-An MCP server for [biblical-atlas](https://github.com/GeiserX/biblical-atlas), the Spanish Bible atlas at <https://biblical-atlas.geiser.cloud/>. The server ships no atlas data. It downloads the atlas's one public data file at run time, keeps it in memory, and answers tool calls from it. Every answer carries the atlas id, a link to the card on the site where the record has one, and the sources with their links, most of them on wol.jw.org.
+An MCP server for [biblical-atlas](https://github.com/GeiserX/biblical-atlas), the Spanish Bible atlas at <https://biblical-atlas.geiser.cloud/>. The server ships no atlas data. It downloads the atlas's one public data file at run time, keeps it in memory, and answers tool calls from it. Every answer carries the atlas id, a link to the card on the site where the record has one, and the sources with their links, most of them on jw.org.
 
 The code, tool names, descriptions and docs are English. The values the tools return are Spanish, exactly as the atlas has them. The server never translates or rewrites a value.
 
@@ -117,7 +117,7 @@ Records have a type and an id. Ids repeat across types, so always pass both. Fin
 Years are signed historical years: -607 is 607 a.e.c. (BCE), 33 is 33 e.c. (CE). There is no year 0.
 A date with kind "narrativa" is placed only by the order of the story, not by a dated source. Say so when you report it.
 status "pendiente" means the atlas has not yet confirmed the claim against its source.
-Every result includes sources with links. Cite them. The atlas links to Bible chapters, never to single verses.
+Every result includes sources with links. Cite them. Passage links open the jw.org study Bible at the cited verse.
 A place without lat/lon has an unknown site; its candidates list the proposed sites.
 ```
 
@@ -178,7 +178,7 @@ Every record returns `type`, `id`, `name`, `url`, `summary`, `status`, `checked_
 - `events` holds the first 20 events whose `lugares` include the place. Each item has `main: true` when the place is first in the list.
 - `letters` are refs with `as`: `written_here` or `sent_here`. `journey_stops` entries: `journey` (ref), `order`, `date`, `reference`. `finds` and `seat_of` are refs to finds and periods.
 
-**event.** `date`, `places` (refs, the first is where the main action happens), `people` (refs), `present` (refs), `roles` (each `{person, role, date, place}`), `passages`, `kind` (`type`), `narrative_order` (`{series, order, after}` with `after` a ref), `periods` (refs to periods that list it in `sucesos`). `passages` entries are `{text, url}`, where `text` is the citation verbatim and `url` is the wol.jw.org link to its first chapter.
+**event.** `date`, `places` (refs, the first is where the main action happens), `people` (refs), `present` (refs), `roles` (each `{person, role, date, place}`), `passages`, `kind` (`type`), `narrative_order` (`{series, order, after}` with `after` a ref), `periods` (refs to periods that list it in `sucesos`). `passages` entries are `{text, url}`, where `text` is the citation verbatim and `url` is the jw.org link to read it (5.6), absent when the citation names a chapter or verse its book lacks.
 
 **period.** `kind` (`tipo`), `date`, `ruler` (ref), `office`, `places` (refs, the first is the seat), `events` (refs from `sucesos`), `attested_from` (`consta_desde`).
 
@@ -190,7 +190,7 @@ Every record returns `type`, `id`, `name`, `url`, `summary`, `status`, `checked_
 
 **tour.** `stops`, each `{about, year, text, passages, question, not_known}`. `about` is a ref parsed from `sel`. A `pasaje:` selection becomes `{type:"passage", id, url}`. `year` is the signed historical year of `floor(t)`. `question` is `{text, options, answer, explanation}`.
 
-**book.** `number`, `abbreviation`, `chapters`, `verses_per_chapter`, `writer`, `written_in` (`lugar`), `written` (date), `covers` (date), `omitted_verses`, `coverage` (`{chapters, chapters_read, verses, verses_read}`, absent when the atlas has not read the book verse by verse), `letter` (ref, when the book is a letter), `url` (the card) and `read_url` (chapter 1 on wol.jw.org).
+**book.** `number`, `abbreviation`, `chapters`, `verses_per_chapter`, `writer`, `written_in` (`lugar`), `written` (date), `covers` (date), `omitted_verses`, `coverage` (`{chapters, chapters_read, verses, verses_read}`, absent when the atlas has not read the book verse by verse), `letter` (ref, when the book is a letter), `url` (the card) and `read_url` (chapter 1 on jw.org).
 
 **month.** `order`, `other_names`, `names_by_era`, `equivalent` (`equivale`), `festivals` (each `{name, from_day, to_day, instituted, sources}`), `weather`, `field`.
 
@@ -248,7 +248,7 @@ Order is basis in the order above, then name, then id. An `office` in `evidence`
 
 ### 4.6 `lookup_passage`
 
-Description: `What the atlas has on a Bible passage: the events whose passages overlap it, the people and places in those events, and the letters, journey stops and other records that cite the chapter. Takes a Spanish reference such as "Hch 16:1", "Hechos 16", "2 Reyes 3", "Gé 2:7, 8", "Hch 13:1–14:28" or just a book, "Rut". Returns the link to read the chapter on wol.jw.org.`
+Description: `What the atlas has on a Bible passage: the events whose passages overlap it, the people and places in those events, and the letters, journey stops and other records that cite the chapter. Takes a Spanish reference such as "Hch 16:1", "Hechos 16", "2 Reyes 3", "Gé 2:7, 8", "Hch 13:1–14:28" or just a book, "Rut". Returns the link to read the passage on jw.org, at its verse.`
 
 | Parameter | Type | Default | Rules |
 | --- | --- | --- | --- |
@@ -257,7 +257,7 @@ Description: `What the atlas has on a Bible passage: the events whose passages o
 
 Output: the paging object plus:
 
-- `passage`: `{book (ref), chapter, verse, to_chapter, to_verse, text, url, read_url}`. `text` is the normalised reference in the atlas's own abbreviation. `read_url` is the wol.jw.org chapter link. `url` is the site's `pasaje` card and is absent for a whole book or a span of chapters.
+- `passage`: `{book (ref), chapter, verse, to_chapter, to_verse, text, url, read_url}`. `text` is the normalised reference in the atlas's own abbreviation. `read_url` is the jw.org link to read the passage (5.6). `url` is the site's `pasaje` card and is absent for a whole book or a span of chapters.
 - `fully_read`: whether `cobertura` lists the book as complete. When false the response adds `notice`: `The atlas has not yet read this book verse by verse. Absence of an event here does not mean the passage has none.`
 - `results`: event items whose parsed `pasajes` overlap the reference, in file order. An event passage with no verses covers its whole chapter. A reference with no verses covers the whole chapter. A reference with only a book covers every chapter.
 - `people` and `places`: refs drawn from the union of `personas` and `lugares` over all matching events, not only the page, at most 30 each, ordered by how many matching events name them (a person named twice in one event counts once), with `people_total` and `places_total`.
@@ -309,6 +309,8 @@ No parameters. Output:
   "stale": false,
   "refresh_error": "",
   "counts": {"people": 0, "places": 0, "events": 0, "periods": 0, "letters": 0, "journeys": 0, "finds": 0, "tours": 0, "books": 66, "sources": 0},
+  "chapter_sources": 0,
+  "warnings": ["..."],
   "books_fully_read": ["genesis"],
   "books_not_yet_read": ["2-reyes"],
   "site": "https://biblical-atlas.geiser.cloud/",
@@ -316,7 +318,7 @@ No parameters. Output:
 }
 ```
 
-`stale` is true when the last refresh failed and the server is answering from an older copy. `refresh_error` then holds the cause and is otherwise absent. Counts are computed from the loaded file.
+`stale` is true when the last refresh failed and the server is answering from an older copy. `refresh_error` then holds the cause and is otherwise absent. Counts are computed from the loaded file. `chapter_sources` counts the sources whose link reads as a Bible chapter (5.4). `warnings` is absent unless the file has sources and none of them reads as a chapter: then `cited_by` and every chapter found through sources would be empty, which usually means the atlas moved its links to a shape this server version does not know. The same warning goes to the load log.
 
 ### 4.10 What we left out
 
@@ -375,7 +377,7 @@ The known-format set is one Go slice, so adding `v1` later is a one-line change 
 - Events by person and by place, as ascending positions in the event list.
 - Letters, journeys and stops, finds and period seats by place. Letters and journeys by person.
 - Passage index: for every event, its parsed passage ranges. For every `(book number, chapter)`, the non-event records that cite it.
-- Chapter sources: `(book number, chapter)` parsed from each source URL with `/wol/b/r4/lp-s/nwt(?:sty)?/(\d+)/(\d+)`.
+- Chapter sources: `(book number, chapter)` parsed from each source URL in either shape the atlas has used: wol.jw.org, `/wol/b/r4/lp-s/nwt(?:sty)?/(\d+)/(\d+)`, which names the book by number; and the jw.org Bible, `https://www.jw.org/es/biblioteca/biblia/(biblia-estudio|nwt)/libros/<book>/<chapter>/`, optionally with `?` or `#`, which names the book by its hyphenated name, unescaped and looked up in the book table of 5.6.
 - Book lookup table of 5.6.
 - Life evidence per person for `people_in_year`: the `fecha` span, the `born` and `died` dates from roles, and office spans.
 - Coverage sets.
@@ -400,7 +402,9 @@ One parser serves both the tool input and the citation fields in the data:
 
 The result is a list of ranges `(book, chapter, verse) to (book, chapter, verse)`, with verse 0 standing for "whole chapter" at the start and the chapter's last verse at the end. The tool input must yield exactly one range: a gap is an error that lists the ranges, and a comma between two bare numbers (`Jn 3, 16`) is an error that shows how to write the verse and the chapter span. Data citations that fail to parse are skipped and counted in the load log. The live test asserts that count is 0 for event passages.
 
-Chapter link: `https://wol.jw.org/es/wol/b/r4/lp-s/nwtsty/<libros[].num>/<chapter>`. The atlas links to chapters, so we do too.
+Chapter link: `https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/<book>/<chapter>/`, the study Bible with its notes beside the text. `<book>` is `nombre` with spaces turned into hyphens: an accented name keeps its case and is escaped (`G%C3%A9nesis`, `1-Cr%C3%B3nicas`), a plain one is lower case (`1-reyes`, `el-cantar-de-los-cantares`). This is the site's own rule.
+
+Passage link, the same as the site's: the chapter of the first range with the anchor jw.org highlights, `#v<book><ccc><vvv>` for one verse (`Hch 16:1` is `#v44016001`) or `#v<start>-v<end>` for a span. Later ranges in the same chapter, the items of a list, extend the span to their last verse, so `Gé 6:1, 2, 4` is verses 1 to 4. A passage that crosses into another chapter opens its first chapter to that chapter's last verse, because jw.org highlights nothing across chapters. A whole chapter, or a span that starts at verse 1 and reaches the chapter's last verse, has no anchor. A one-chapter book reads `Flm 10` as chapter 1, verse 10.
 
 ### 5.7 Disk cache
 
@@ -558,7 +562,7 @@ Two more small files: `unknown-format.json` with `formato: "biblical-atlas/v9"`,
 - **npm wrapper**: `node --test postinstall.test.js` covers a tampered archive, a wrong sum, a missing entry, a `checksums.txt` that answers 404, a redirect to plain HTTP and an HTTPS redirect.
 - **Tools**: every tool through `s.HandleMessage` with a `tools/call` JSON-RPC message, so schemas and registration are part of the test. One table has a row per tool with the arguments and the expected JSON. `TestEveryToolHasACase` walks the registered slice and fails for a tool with no row. Each tool also has rows for no match and for each bad input of its table in section 4, asserting `isError` and the message.
 - **Annotations**: every registered tool has the four hints of 3.6.
-- **Links**: every `url` in every tool output of the fixture starts with the site base or `https://wol.jw.org/`.
+- **Links**: every `url` in every tool output of the fixture starts with the site base, `https://www.jw.org/` or `https://wol.jw.org/`.
 - **`run`**: `--version`, `--help`, an unknown argument exits 2, a bad `BIBLICAL_ATLAS_REFRESH` exits 2, HTTP mode serves `/healthz`, the bearer check rejects a missing or wrong token and accepts the right one.
 - **Manifests**: `package.json` and `server.json` versions agree, and the archive names in `postinstall.js` match the GoReleaser template.
 

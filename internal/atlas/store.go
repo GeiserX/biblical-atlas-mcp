@@ -256,6 +256,9 @@ func (s *Store) publish(sn *Snapshot) {
 	s.opt.Logf("loaded %s generated %s from %s: %d people, %d places, %d events; %d dangling references skipped, %d citations and %d event passages not parsed",
 		sn.Format, sn.Generated, sn.Source, len(f.People), len(f.Places), len(f.Events),
 		sn.Stats.Dangling, sn.Stats.BadCitations, sn.Stats.BadEventPassages)
+	for _, w := range sn.Warnings() {
+		s.opt.Logf("warning: %s", w)
+	}
 }
 
 func (s *Store) fetch() {
