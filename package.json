@@ -1,7 +1,7 @@
 {
   "name": "biblical-atlas-mcp",
   "mcpName": "io.github.GeiserX/biblical-atlas-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for biblical-atlas, a Spanish Bible atlas: people, places, events, passages and their sources",
   "license": "MIT",
   "author": "GeiserX",

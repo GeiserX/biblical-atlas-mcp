@@ -4,6 +4,8 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ## [Unreleased]
 
+## [0.1.1]
+
 ### Fixed
 
 - Bible chapters are read from source links on jw.org as well as wol.jw.org. The atlas is moving its sources to jw.org, and with only the wol.jw.org shape known, `cited_by` and every chapter found through sources came back empty without an error.
