@@ -2,6 +2,7 @@ package atlas
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -10,10 +11,70 @@ import (
 	"unicode/utf8"
 )
 
-// ChapterURL is the wol.jw.org link to one chapter. The atlas links to
-// chapters, never to single verses, so the server does too.
-func ChapterURL(bookNum, chapter int) string {
-	return fmt.Sprintf("https://wol.jw.org/es/wol/b/r4/lp-s/nwtsty/%d/%d", bookNum, chapter)
+// studyBible is the jw.org study Bible; a chapter is <book>/<chapter>/.
+const studyBible = "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/"
+
+// ChapterURL is the jw.org study Bible link to one chapter. jw.org writes
+// the book name with hyphens: an accented name as it is, escaped
+// ("G%C3%A9nesis", "1-Cr%C3%B3nicas"); a plain one in lower case ("1-reyes").
+func ChapterURL(b *Book, chapter int) string {
+	name := strings.Join(strings.Fields(b.Name), "-")
+	ascii := true
+	for i := 0; i < len(name); i++ {
+		if name[i] >= utf8.RuneSelf {
+			ascii = false
+			break
+		}
+	}
+	if ascii {
+		name = strings.ToLower(name)
+	} else {
+		name = url.PathEscape(name)
+	}
+	return studyBible + name + "/" + strconv.Itoa(chapter) + "/"
+}
+
+// PassageURL is the link to read a citation, as the site writes it: the
+// chapter of its first range with the anchor jw.org highlights,
+// #v<book><ccc><vvv> for one verse or #v<start>-v<end> for a span. Later
+// ranges in the same chapter, the items of a list, extend the span to their
+// last verse. A passage that crosses into another chapter opens its first
+// chapter to that chapter's last verse, because jw.org highlights nothing
+// across chapters. A whole chapter has no anchor.
+func PassageURL(rs []Range) string {
+	if len(rs) == 0 || rs[0].Book == nil {
+		return ""
+	}
+	r := rs[0]
+	b := r.Book
+	u := ChapterURL(b, r.C1)
+	if !r.HasVerses || r.V1 < 1 {
+		return u
+	}
+	last := 0
+	if r.C1 <= len(b.Verses) {
+		last = b.Verses[r.C1-1]
+	}
+	end := r.V2
+	if r.C2 > r.C1 {
+		end = last
+	}
+	for _, x := range rs[1:] {
+		if x.Book == b && x.HasVerses && x.C1 == r.C1 && x.C2 == r.C1 && r.C2 == r.C1 {
+			end = max(end, x.V2)
+		}
+	}
+	if end < r.V1 {
+		end = r.V1
+	}
+	if r.V1 == 1 && last > 0 && end >= last {
+		return u
+	}
+	anchor := func(v int) string { return fmt.Sprintf("v%d%03d%03d", b.Num, r.C1, v) }
+	if end > r.V1 {
+		return u + "#" + anchor(r.V1) + "-" + anchor(end)
+	}
+	return u + "#" + anchor(r.V1)
 }
 
 // Chapter names one chapter of one book.
@@ -469,15 +530,33 @@ func (r Range) Validate() error {
 	return nil
 }
 
-var reChapterURL = regexp.MustCompile(`/wol/b/r4/lp-s/nwt(?:sty)?/(\d+)/(\d+)`)
+var (
+	reWolChapter = regexp.MustCompile(`/wol/b/r4/lp-s/nwt(?:sty)?/(\d+)/(\d+)`)
+	reJWChapter  = regexp.MustCompile(`^https://www\.jw\.org/es/biblioteca/biblia/(?:biblia-estudio|nwt)/libros/([^/?#]+)/(\d+)/?(?:[?#]|$)`)
+)
 
-// chapterOfURL reads (book number, chapter) from a wol.jw.org chapter URL.
-func chapterOfURL(u string) (Chapter, bool) {
-	m := reChapterURL.FindStringSubmatch(u)
+// chapterOfURL reads (book number, chapter) from a chapter link in either
+// shape the atlas uses: wol.jw.org, which names the book by number, or the
+// jw.org Bible, which names it by its hyphenated name ("G%C3%A9nesis",
+// "el-cantar-de-los-cantares").
+func (t *BookTable) chapterOfURL(u string) (Chapter, bool) {
+	if m := reWolChapter.FindStringSubmatch(u); m != nil {
+		b, _ := strconv.Atoi(m[1])
+		c, _ := strconv.Atoi(m[2])
+		return Chapter{Book: b, Chapter: c}, true
+	}
+	m := reJWChapter.FindStringSubmatch(u)
 	if m == nil {
 		return Chapter{}, false
 	}
-	b, _ := strconv.Atoi(m[1])
+	name, err := url.PathUnescape(m[1])
+	if err != nil {
+		return Chapter{}, false
+	}
+	b := t.Lookup(name)
+	if b == nil {
+		return Chapter{}, false
+	}
 	c, _ := strconv.Atoi(m[2])
-	return Chapter{Book: b, Chapter: c}, true
+	return Chapter{Book: b.Num, Chapter: c}, true
 }

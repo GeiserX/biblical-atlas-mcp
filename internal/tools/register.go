@@ -17,7 +17,7 @@ Records have a type and an id. Ids repeat across types, so always pass both. Fin
 Years are signed historical years: -607 is 607 a.e.c. (BCE), 33 is 33 e.c. (CE). There is no year 0.
 A date with kind "narrativa" is placed only by the order of the story, not by a dated source. Say so when you report it.
 status "pendiente" or "pending" means the atlas has not yet confirmed the claim against its source.
-Every result includes sources with links. Cite them. The atlas links to Bible chapters, never to single verses.
+Every result includes sources with links. Cite them. Passage links open the jw.org study Bible at the cited verse.
 A place without lat/lon has an unknown site; its candidates list the proposed sites.`
 
 // Call is what a handler gets: one snapshot, the store and the arguments.

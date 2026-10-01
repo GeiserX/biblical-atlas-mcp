@@ -42,6 +42,7 @@ func datasetInfo(c *Call) (*obj, error) {
 		o.keep("checked_at", st.CheckedAt.UTC().Format(time.RFC3339))
 	}
 	o.keep("stale", st.Stale).set("refresh_error", st.RefreshError).keep("counts", counts).
+		keep("chapter_sources", len(s.SourceChapter)).set("warnings", s.Warnings()).
 		set("books_fully_read", read).set("books_not_yet_read", unread).
 		keep("site", SiteBase).keep("server_version", version.Version)
 	return o, nil

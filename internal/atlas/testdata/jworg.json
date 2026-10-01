@@ -1,0 +1,187 @@
+{
+  "formato": "biblical-atlas/v0",
+  "generado": "2026-09-30",
+  "futuro": {"campo": "un campo que el servidor no conoce"},
+  "fuentes": {
+    "it-pablo": {"titulo": "Pablo", "obra": "Obra de prueba", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1200003406", "nivel": 2},
+    "it-timoteo": {"titulo": "Timoteo", "obra": "Obra de prueba", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1200004416", "nivel": 2},
+    "it-eunice": {"titulo": "Eunice", "obra": "Obra de prueba", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1200001421", "nivel": 2},
+    "it-loida": {"titulo": "Loida", "obra": "Obra de prueba", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1200002768", "nivel": 2},
+    "it-anas": {"titulo": "Anás", "obra": "Obra de prueba", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1200000291", "nivel": 2},
+    "it-calendario": {"titulo": "Calendario", "obra": "Obra de prueba", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1200000812", "nivel": 2},
+    "tnm-tabla": {"titulo": "Tabla de prueba", "obra": "Obra de prueba", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1001070071", "nivel": 1},
+    "genesis-2": {"titulo": "Génesis 2", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/G%C3%A9nesis/2/", "nivel": 1, "implicita": true},
+    "genesis-5": {"titulo": "Génesis 5", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/G%C3%A9nesis/5/", "nivel": 1, "implicita": true},
+    "hch-16": {"titulo": "Hechos 16", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/16/", "nivel": 1},
+    "hechos-16": {"titulo": "Hechos 16", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/16/", "nivel": 1, "implicita": true},
+    "hechos-9": {"titulo": "Hechos 9", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/9/", "nivel": 1, "implicita": true},
+    "hechos-9-copia": {"titulo": "Hechos 9 (copia)", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/9/#v44009001-v44009009", "nivel": 1, "implicita": true},
+    "hechos-22": {"titulo": "Hechos 22", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/22", "nivel": 1, "implicita": true},
+    "hechos-4": {"titulo": "Hechos 4", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/hechos/4/", "nivel": 1, "implicita": true},
+    "2-timoteo-1": {"titulo": "2 Timoteo 1", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/2-timoteo/1/", "nivel": 1, "implicita": true},
+    "rut-1": {"titulo": "Rut 1", "obra": "Biblia de prueba", "url": "https://www.jw.org/es/biblioteca/biblia/biblia-estudio/libros/rut/1/", "nivel": 1, "implicita": true}
+  },
+  "libros": [
+    {"slug": "genesis", "num": 1, "nombre": "Génesis", "abr": "Gé", "formas": ["ge", "gen", "genesis"], "habladas": ["Génesis", "Gén."], "capitulos": 50,
+     "versiculos": [31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33, 38, 18, 34, 24, 20, 67, 34, 35, 46, 22, 35, 43, 55, 32, 20, 31, 29, 43, 36, 30, 23, 23, 57, 38, 34, 34, 28, 34, 31, 22, 33, 26],
+     "escritor": "Moisés", "lugar": "Desierto", "fecha": {"desde": -1512, "hasta": -1512, "precision": "año", "aprox": false, "tipo": "anclada", "cronologia": "tnm", "texto": "1513 a.e.c."},
+     "abarca": {"desde": null, "hasta": -1656, "precision": "rango", "aprox": false, "tipo": "anclada", "cronologia": "tnm", "texto": "hasta 1657 a.e.c."},
+     "fuentes": ["tnm-tabla"], "razon": "Razón de prueba.", "consultado": "2026-09-28", "estado": "verificado"},
+    {"slug": "rut", "num": 8, "nombre": "Rut", "abr": "Rut", "formas": ["rut"], "habladas": ["Rut"], "capitulos": 4, "versiculos": [22, 23, 18, 22],
+     "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    {"slug": "hechos", "num": 44, "nombre": "Hechos", "abr": "Hch", "formas": ["hch", "hech", "hechos", "he"], "habladas": ["Hechos", "Hech."], "capitulos": 28,
+     "versiculos": [26, 47, 26, 37, 42, 15, 60, 40, 43, 48, 30, 25, 52, 28, 41, 40, 34, 28, 41, 38, 40, 30, 35, 27, 27, 32, 44, 31],
+     "omitidos": {"8": [37], "15": [34], "24": [7], "28": [29]}, "escritor": "Lucas", "lugar": "Roma",
+     "fecha": {"desde": 61, "hasta": 61, "precision": "año", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 61 e.c."},
+     "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    {"slug": "2-timoteo", "num": 55, "nombre": "2 Timoteo", "abr": "2Ti", "formas": ["2ti", "2tim", "2timoteo"], "habladas": ["2 Timoteo", "2 Tim."], "capitulos": 4, "versiculos": [18, 26, 17, 22],
+     "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    {"slug": "filemon", "num": 57, "nombre": "Filemón", "abr": "Flm", "formas": ["flm", "filem", "filemon"], "habladas": ["Filemón", "Filem."], "capitulos": 1, "versiculos": [25],
+     "fuentes": ["tnm-tabla"], "estado": "verificado"}
+  ],
+  "calendario": {
+    "meses": [
+      {"id": "nisan", "nombre": "Nisán", "orden": 1, "otros_nombres": ["Abib"],
+       "nombres": [{"nombre": "Abib", "hasta": -536, "nota": "Nombre anterior (texto de prueba).", "fuentes": ["it-calendario"]}, {"nombre": "Nisán", "desde": -536, "fuentes": ["it-calendario"]}],
+       "equivale": "marzo-abril", "fiestas": [{"nombre": "Pascua", "desde": 14, "hasta": 14, "instituida": -1512, "fuentes": ["it-calendario"], "estado": "verificado"}],
+       "clima": "Clima de prueba.", "campo": "Cosecha de prueba.", "fuentes": ["it-calendario"], "estado": "verificado", "consultado": "2026-09-28"},
+      {"id": "tisri", "nombre": "Tisri", "orden": 7, "otros_nombres": ["Etanim"], "equivale": "septiembre-octubre", "fuentes": ["it-calendario"], "estado": "verificado"}
+    ],
+    "explicacion": [
+      {"id": "mes-lunar", "titulo": "El mes lunar", "texto": "Texto de prueba sobre el mes lunar.", "fuentes": ["it-calendario"], "estado": "verificado"}
+    ]
+  },
+  "lugares": {
+    "acsaf": {"id": "acsaf", "nombre": "Acsaf", "nombres": [{"nombre": "Acsaf"}], "tipo": "ciudad", "lat": null, "lon": null, "precision": "incierto", "coord_fuente": null, "coord_url": null,
+      "candidatos": [
+        {"nombre": "Primer sitio de prueba", "geometria": {"tipo": "punto", "lat": 32.872761, "lon": 35.15133}, "estado": "alternativa", "fuentes": ["it-anas"], "razon": "Razón de prueba."},
+        {"nombre": "Segundo sitio de prueba", "geometria": {"tipo": "punto", "lat": 32.75885, "lon": 35.09027, "radio_km": 5}, "estado": "alternativa", "fuentes": ["it-anas"]}
+      ],
+      "resumen": "Ciudad de prueba sin sitio conocido.", "fuentes": ["it-anas"], "estado": "verificado"},
+    "adan": {"id": "adan", "nombre": "Adán", "tipo": "ciudad", "lat": 32.103933, "lon": 35.546789, "precision": "punto", "coord_fuente": "openbible:a0001", "coord_url": "https://www.openbible.info/geo/ancient/a0001/adam",
+      "resumen": "Ciudad de prueba junto al río.", "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    "galilea": {"id": "galilea", "nombre": "Galilea", "tipo": "region", "lat": 32.76, "lon": 35.527, "precision": "zona", "coord_nota": "Punto de referencia de prueba.",
+      "no_afirmamos": ["No trazamos sus fronteras (prueba)."], "resumen": "Región de prueba al norte.", "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    "jerusalen": {"id": "jerusalen", "nombre": "Jerusalén", "nombres": [{"nombre": "Jerusalén"}, {"nombre": "Salem", "desde": -1932, "hasta": -1932, "nota": "Nombre antiguo (prueba)."}],
+      "tipo": "ciudad", "lat": 31.776667, "lon": 35.234167, "precision": "punto", "coord_fuente": "openbible:a0002", "coord_url": "https://www.openbible.info/geo/ancient/a0002/jerusalem",
+      "resumen": "Ciudad de prueba con templo.", "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    "listra": {"id": "listra", "nombre": "Listra", "tipo": "ciudad", "lat": 37.6017, "lon": 32.3384, "precision": "punto",
+      "resumen": "Ciudad de prueba en Licaonia.", "fuentes": ["it-timoteo"], "estado": "verificado"},
+    "roma": {"id": "roma", "nombre": "Roma", "tipo": "ciudad", "lat": 41.8925, "lon": 12.4853, "precision": "punto", "resumen": "Capital de prueba.", "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    "tarso": {"id": "tarso", "nombre": "Tarso", "tipo": "ciudad", "lat": 36.913028, "lon": 34.892056, "precision": "punto", "resumen": "Ciudad natal de prueba.", "fuentes": ["hechos-22"], "estado": "verificado"}
+  },
+  "personas": {
+    "adan": {"id": "adan", "nombre": "Adán", "fecha": {"desde": -3199, "hasta": -3099, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 3200-3100 a.e.c. (prueba)"}, "resumen": "Primer hombre, texto de prueba.", "fuentes": ["genesis-2", "genesis-5"], "estado": "verificado", "consultado": "2026-09-29"},
+    "anas": {"id": "anas", "nombre": "Anás", "resumen": "Sumo sacerdote de prueba.", "fuentes": ["it-anas", "hechos-4"], "estado": "verificado",
+      "offices": [{"office": "high_priest", "es": "sumo sacerdote", "place": "jerusalen", "date": {"desde": 6, "hasta": 15, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 6 a c. 15 e.c."},
+        "inferred": false, "sources": ["it-anas", "hechos-4"], "reason": "Razón de prueba.", "status": "verified", "checked_on": "2026-09-28", "origin": "period:sumo-sacerdocio-de-anas"}]},
+    "eunice": {"id": "eunice", "nombre": "Eunice", "resumen": "Madre de prueba de Timoteo.", "fuentes": ["it-eunice", "2-timoteo-1"], "estado": "verificado",
+      "relaciones": [{"tipo": "pariente", "persona": "loida", "relacion": "madre", "deducido": false, "fuentes": ["it-eunice", "2-timoteo-1"], "estado": "verificado",
+        "type": "kin", "word": "mother", "family": "parents", "inverse_family": "children", "checked_on": "2026-09-29", "verb": "su madre", "inverse_verb": "Eunice es su hija", "key": "eunice/kin/loida/mother", "reference": "2Ti 1:5"}]},
+    "loida": {"id": "loida", "nombre": "Loida", "resumen": "Abuela de prueba de Timoteo.", "fuentes": ["it-loida"], "estado": "verificado",
+      "relaciones": [{"tipo": "vivio_en", "lugar": "listra", "deducido": true, "fuentes": ["it-loida"], "estado": "verificado", "type": "lived_in", "verb": "vivió aquí", "inverse_verb": "vivió aquí", "key": "loida/lived_in/listra"}]},
+    "pablo": {"id": "pablo", "nombre": "Pablo", "campo_nuevo": "un campo que el servidor no conoce",
+      "fecha": {"desde": 33, "hasta": 65, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 33-65 e.c."},
+      "resumen": "Apóstol de prueba que viajó mucho y escribió cartas.", "razon": "Razón de prueba.",
+      "enlaces": [{"titulo": "Perspicacia: «Pablo»", "url": "https://wol.jw.org/es/wol/d/r4/lp-s/1200003406", "tipo": "perspicacia"}],
+      "fuentes": ["it-pablo", "hechos-9", "hechos-9-copia", "it-fantasma", "hechos-22", "tnm-tabla"], "estado": "verificado", "consultado": "2026-09-29",
+      "historial": [{"fecha": "2026-09-29", "cambio": "Cambio de prueba.", "fuente": "hechos-9"}],
+      "relaciones": [
+        {"tipo": "nacio_en", "lugar": "tarso", "deducido": false, "fuentes": ["hechos-22"], "estado": "verificado", "type": "born_in", "verb": "nació aquí", "inverse_verb": "nació aquí", "key": "pablo/born_in/tarso", "reference": "Hch 22:3"},
+        {"tipo": "vivio_en", "lugar": "jerusalen", "deducido": false, "fuentes": ["hechos-22"], "estado": "verificado", "type": "lived_in", "verb": "vivió aquí", "inverse_verb": "vivió aquí", "key": "pablo/lived_in/jerusalen", "reference": "Hch 22:3"},
+        {"tipo": "vivio_en", "lugar": "eden", "deducido": true, "fuentes": ["hechos-22"], "estado": "verificado", "type": "lived_in", "verb": "vivió aquí", "inverse_verb": "vivió aquí", "key": "pablo/lived_in/eden"},
+        {"tipo": "acompana", "persona": "santiago-hijo-de-alfeo", "relacion": "compañero", "deducido": true, "fuentes": ["hechos-9"], "estado": "pendiente", "consultado": "2026-09-20",
+         "verb": "trató con Santiago", "inverse_verb": "Pablo trató con él", "key": "pablo/accompanies/santiago-hijo-de-alfeo"}
+      ]},
+    "santiago-hijo-de-alfeo": {"id": "santiago-hijo-de-alfeo", "nombre": "Santiago", "desambiguacion": "El apóstol hijo de Alfeo (prueba).", "resumen": "Apóstol de prueba.", "fuentes": ["tnm-tabla"], "estado": "verificado"},
+    "santiago-padre-de-tadeo": {"id": "santiago-padre-de-tadeo", "nombre": "Santiago", "desambiguacion": "El padre de Tadeo (prueba).", "resumen": "Padre de prueba.", "no_confundir_con": ["santiago-hijo-de-alfeo"], "fuentes": ["tnm-tabla"], "estado": "verificado",
+      "offices": [{"office": "high_priest", "es": "sumo sacerdote", "sources": ["tnm-tabla"], "status": "verified"}]},
+    "timoteo": {"id": "timoteo", "nombre": "Timoteo", "nombres": [{"nombre": "Timoteo"}], "resumen": "Joven de prueba que acompañó a Pablo.", "fuentes": ["it-timoteo", "hch-16", "hechos-16"], "estado": "verificado",
+      "relaciones": [
+        {"tipo": "vivio_en", "lugar": "listra", "deducido": true, "fuentes": ["it-loida", "hch-16"], "estado": "verificado", "type": "lived_in", "verb": "vivió aquí", "inverse_verb": "vivió aquí", "key": "timoteo/lived_in/listra", "reference": "Hch 16:1"},
+        {"tipo": "acompana", "persona": "pablo", "fecha": {"desde": 49, "hasta": 65, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 49-65 e.c."},
+         "deducido": false, "fuentes": ["it-timoteo", "hch-16"], "estado": "verificado", "type": "accompanies", "verb": "estuvo con Pablo", "inverse_verb": "Timoteo estuvo con Pablo", "key": "timoteo/accompanies/pablo@49", "reference": "Hch 16:3; 2Ti 1:2"},
+        {"tipo": "pariente", "persona": "eunice", "relacion": "madre", "deducido": false, "fuentes": ["it-timoteo", "hch-16", "hechos-16"], "estado": "verificado",
+         "type": "kin", "word": "mother", "family": "parents", "inverse_family": "children", "verb": "su madre", "inverse_verb": "Timoteo es su hijo", "key": "timoteo/kin/eunice/mother", "reference": "Hch 16:1; 2Ti 1:5"}
+      ]}
+  },
+  "viajes": [
+    {"id": "primer-viaje", "nombre": "Primer viaje de prueba", "persona": "pablo", "companeros": ["timoteo"], "referencia": "Hch 13:1–14:28",
+     "fecha": {"desde": 47, "hasta": 48, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 47-48 e.c."},
+     "paradas": [
+       {"orden": 1, "lugar": "jerusalen", "referencia": "Hch 12:25", "fecha": {"desde": 47, "hasta": 47, "precision": "año", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 47 e.c."}, "estado": "verificado", "fuentes": ["tnm-tabla"]},
+       {"orden": 2, "lugar": "listra", "referencia": "Hch 14:6-20", "nota": "Parada de prueba.", "estado": "verificado", "fuentes": ["it-timoteo"]},
+       {"orden": 3, "lugar": "tarso", "referencia": "Hch 14:26", "estado": "verificado", "fuentes": ["tnm-tabla"]}
+     ],
+     "resumen": "Viaje de prueba por Asia Menor.", "fuentes": ["it-pablo"], "estado": "verificado"}
+  ],
+  "cartas": [
+    {"id": "2-timoteo", "libro": "2 Timoteo", "escritor": "pablo", "referencia": "2Ti 1:1, 2", "escrita_en": ["roma"],
+     "fecha": {"desde": 65, "hasta": 65, "precision": "año", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 65 e.c."},
+     "destinatarios": {"texto": "Timoteo", "personas": ["timoteo"]}, "personas": ["loida", "eunice"], "portadores": [],
+     "contexto_origen": {"resumen": "Contexto de prueba.", "fuentes": ["it-pablo"]},
+     "fuentes": ["tnm-tabla"], "estado": "verificado"}
+  ],
+  "eventos": [
+    {"id": "creacion-de-adan", "titulo": "Creación de Adán", "buscar": "creación de Adán 4026", "type": "birth",
+     "fecha": {"desde": -4025, "hasta": -4025, "precision": "año", "aprox": false, "tipo": "anclada", "cronologia": "tnm", "texto": "4026 a.e.c."},
+     "lugares": [], "personas": ["adan"], "roles": {"adan": {"role": "born", "date": {"desde": -4025, "hasta": -4025, "precision": "año", "aprox": false, "tipo": "anclada", "cronologia": "tnm", "texto": "4026 a.e.c."}, "place": null}},
+     "pasajes": ["Gé 2:7, 8"], "orden_relato": {"serie": "genesis", "orden": 1}, "resumen": "Resumen de prueba del primer hombre.", "fuentes": ["genesis-2"], "estado": "verificado"},
+    {"id": "muerte-de-adan", "titulo": "Muerte de Adán", "type": "death",
+     "fecha": {"desde": -3095, "hasta": -3095, "precision": "año", "aprox": false, "tipo": "anclada", "cronologia": "tnm", "texto": "3096 a.e.c."},
+     "lugares": [], "personas": ["adan"], "roles": {"adan": {"role": "died", "date": null, "place": null}},
+     "pasajes": ["Gé 5:5"], "orden_relato": {"serie": "genesis", "orden": 2, "tras": "creacion-de-adan"}, "resumen": "Resumen de prueba de una muerte.", "fuentes": ["genesis-5"], "estado": "verificado"},
+    {"id": "rut-vuelve-con-noemi", "titulo": "Rut vuelve con Noemí",
+     "fecha": {"desde": -1472, "hasta": -1300, "precision": "rango", "aprox": true, "tipo": "narrativa", "cronologia": "tnm", "texto": "entre 1473 y 1301 a.e.c. (tiempo narrativo)"},
+     "lugares": [], "personas": [], "pasajes": ["Rut 1:16, 17"], "orden_relato": {"serie": "rut", "orden": 1}, "resumen": "Resumen de prueba de una lealtad.", "fuentes": ["rut-1"], "estado": "verificado"},
+    {"id": "formacion-de-pablo", "titulo": "Formación de Pablo",
+     "fecha": {"desde": -1, "hasta": 30, "precision": "rango", "aprox": true, "tipo": "derivada", "cronologia": "tnm", "texto": "entre 2 a.e.c. y 30 e.c."},
+     "lugares": ["tarso", "jerusalen"], "personas": ["pablo"], "pasajes": ["Hch 22:3"], "orden_relato": {"serie": "hechos", "orden": 3}, "resumen": "Resumen de prueba de unos estudios.", "fuentes": ["hechos-22"], "estado": "verificado"},
+    {"id": "loida-ensena-a-eunice", "titulo": "Loida enseña a Eunice",
+     "fecha": {"desde": null, "hasta": 48, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "antes de 49 e.c."},
+     "lugares": ["listra"], "personas": ["loida", "eunice"], "pasajes": ["2Ti 1:5"], "resumen": "Resumen de prueba de una enseñanza.", "fuentes": ["2-timoteo-1"], "estado": "verificado"},
+    {"id": "primer-viaje-misional", "titulo": "Primer viaje misional",
+     "fecha": {"desde": 47, "hasta": 48, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 47-48 e.c."},
+     "lugares": ["listra", "jerusalen"], "personas": ["pablo"], "pasajes": ["Hch 13:1–14:28"], "orden_relato": {"serie": "hechos", "orden": 1}, "resumen": "Resumen de prueba de un viaje.", "fuentes": ["it-pablo"], "estado": "verificado"},
+    {"id": "pablo-habla-en-listra", "titulo": "Pablo habla en Listra", "type": "speech",
+     "fecha": {"desde": 47, "hasta": 48, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 47-48 e.c."},
+     "lugares": ["listra"], "personas": ["pablo"], "roles": {"pablo": {"role": "spoke", "date": null, "place": "listra"}},
+     "pasajes": ["Hch 14:8-10, 18"], "orden_relato": {"serie": "hechos", "orden": 2, "tras": "primer-viaje-misional"}, "resumen": "Resumen de prueba de un discurso.", "fuentes": ["it-pablo"], "estado": "verificado"},
+    {"id": "timoteo-se-une-a-pablo", "titulo": "Timoteo se une a Pablo",
+     "fecha": {"desde": 49, "hasta": 50, "precision": "rango", "aprox": true, "tipo": "narrativa", "cronologia": "tnm", "texto": "c. 49-50 e.c. (tiempo narrativo)"},
+     "lugares": ["listra"], "personas": ["pablo", "timoteo", "eunice", "timoteo"], "presentes": ["eunice"], "pasajes": ["Hch 16:1-3"], "orden_relato": {"serie": "hechos", "orden": 4},
+     "resumen": "Resumen de prueba de un encuentro.", "fuentes": ["hch-16"], "estado": "verificado"},
+    {"id": "arresto-de-pablo-en-jerusalen", "titulo": "Arresto de Pablo en Jerusalén",
+     "fecha": {"desde": 56, "hasta": 56, "precision": "año", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 56 e.c.", "detalle": {"mes": "sivan", "estacion": "primavera"}},
+     "lugares": ["jerusalen"], "personas": ["pablo"], "pasajes": ["Hch 21:27-36; 22:1"], "orden_relato": {"serie": "hechos", "orden": 5},
+     "alternativas": [{"fecha": {"desde": 57, "hasta": 57, "precision": "año", "aprox": false, "tipo": "anclada", "cronologia": "secular", "texto": "57 e.c."}, "nota": "Otra datación de prueba.", "fuentes": ["it-pablo"]}],
+     "resumen": "Resumen de prueba de un arresto.", "fuentes": ["it-pablo"], "estado": "verificado"}
+  ],
+  "periodos": [
+    {"id": "sumo-sacerdocio-de-anas", "nombre": "Sumo sacerdocio de Anás", "tipo": "sumo-sacerdote", "persona": "anas", "office": "high_priest", "lugares": ["jerusalen"],
+     "fecha": {"desde": 6, "hasta": 15, "precision": "rango", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 6-15 e.c."}, "sucesos": [], "consta_desde": 6,
+     "resumen": "Periodo de prueba.", "fuentes": ["it-anas"], "estado": "verificado"},
+    {"id": "potencia-romana", "nombre": "Potencia romana", "tipo": "potencia", "lugares": ["roma"],
+     "fecha": {"desde": -62, "hasta": 476, "precision": "rango", "aprox": false, "tipo": "anclada", "cronologia": "tnm", "texto": "63 a.e.c.-476 e.c."}, "sucesos": ["arresto-de-pablo-en-jerusalen"],
+     "resumen": "Potencia de prueba.", "fuentes": ["tnm-tabla"], "estado": "verificado"}
+  ],
+  "hallazgos": [
+    {"id": "osario-de-caifas", "nombre": "Osario de prueba", "lugar_hallazgo": "jerusalen", "relaciona": ["persona:anas", "periodo:sumo-sacerdocio-de-anas", "lugar:jerusalen", "evento:no-existe"],
+     "fecha_objeto": {"desde": 30, "hasta": 30, "precision": "año", "aprox": true, "tipo": "anclada", "cronologia": "tnm", "texto": "c. 30 e.c."}, "identificacion": "probable",
+     "resumen": "Hallazgo de prueba.", "fuentes": ["it-anas"], "estado": "verificado"}
+  ],
+  "recorridos": [
+    {"id": "cartas-y-ciudades", "titulo": "Cartas y ciudades", "resumen": "Recorrido de prueba.", "fuentes": ["tnm-tabla"], "estado": "verificado",
+     "paradas": [
+       {"sel": "evento:formacion-de-pablo", "t": -0.5, "texto": "Parada de prueba antes de la era común.", "pasajes": ["Hch 22:3"]},
+       {"sel": "lugar:listra", "t": 47.2, "texto": "Parada de prueba en Listra.", "no_sabemos": "Dato de prueba que no se sabe."},
+       {"sel": "pasaje:hch-16", "t": 49.5, "texto": "Parada de prueba en un capítulo.", "pasajes": ["Hch 16:1-3"]},
+       {"sel": "carta:2-timoteo", "t": 65.0, "texto": "Parada de prueba de una carta.", "pasajes": ["2Ti 4:6-8"],
+        "pregunta": {"texto": "¿Desde qué ciudad? (prueba)", "opciones": ["Roma", "Atenas"], "respuesta": "Roma", "explicacion": "Explicación de prueba."}}
+     ]}
+  ],
+  "cobertura": {
+    "genesis": {"capitulos": 50, "completos": 50, "versiculos": 1533, "leidos": 1533},
+    "rut": {"capitulos": 4, "completos": 4, "versiculos": 85, "leidos": 85}
+  }
+}

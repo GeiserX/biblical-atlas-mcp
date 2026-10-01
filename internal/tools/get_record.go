@@ -366,7 +366,7 @@ func passageObjs(s *atlas.Snapshot, ps []string) []*obj {
 	for _, p := range ps {
 		x := newObj().set("text", p)
 		if rs, err := s.Books.ParseRefs(p); err == nil && len(rs) > 0 {
-			x.set("url", atlas.ChapterURL(rs[0].Book.Num, rs[0].C1))
+			x.set("url", atlas.PassageURL(rs))
 		}
 		out = append(out, x)
 	}
@@ -481,7 +481,7 @@ func selRef(s *atlas.Snapshot, sel string) *obj {
 	if prefix == "pasaje" {
 		x := newObj().keep("type", "passage").keep("id", id)
 		if b, ch := chapterFromPassageID(s, id); b != nil {
-			x.keep("name", b.Name+" "+strconv.Itoa(ch)).keep("url", passageURL(b, ch)).keep("read_url", atlas.ChapterURL(b.Num, ch))
+			x.keep("name", b.Name+" "+strconv.Itoa(ch)).keep("url", passageURL(b, ch)).keep("read_url", atlas.ChapterURL(b, ch))
 		}
 		return x
 	}
@@ -565,7 +565,7 @@ func bookView(s *atlas.Snapshot, o *obj, b *atlas.Book) {
 	if l := s.BookLetter(b); l != nil {
 		o.set("letter", ref(s, atlas.TypeLetter, l.ID))
 	}
-	o.set("read_url", atlas.ChapterURL(b.Num, 1))
+	o.set("read_url", atlas.ChapterURL(b, 1))
 }
 
 func monthView(s *atlas.Snapshot, o *obj, m *atlas.Month) {
