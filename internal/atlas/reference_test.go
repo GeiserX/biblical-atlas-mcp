@@ -244,6 +244,17 @@ func TestPassageURL(t *testing.T) {
 	if got := PassageURL(nil); got != "" {
 		t.Errorf("PassageURL(nil) = %q", got)
 	}
+	// A data citation that names a chapter or verse its book lacks gets no
+	// link, and never panics.
+	for _, ref := range []string{"Hch 0:1", "Hch 0", "Hch 29:1", "Hch 16:99", "Hch 16:1, 99"} {
+		rs, err := s.Books.ParseRefs(ref)
+		if err != nil {
+			t.Fatalf("%s: %v", ref, err)
+		}
+		if got := PassageURL(rs); got != "" {
+			t.Errorf("PassageURL(%s) = %q, want no link", ref, got)
+		}
+	}
 }
 
 // TestSourceChaptersBothShapes loads the fixture with wol.jw.org chapter

@@ -40,10 +40,16 @@ func ChapterURL(b *Book, chapter int) string {
 // ranges in the same chapter, the items of a list, extend the span to their
 // last verse. A passage that crosses into another chapter opens its first
 // chapter to that chapter's last verse, because jw.org highlights nothing
-// across chapters. A whole chapter has no anchor.
+// across chapters. A whole chapter has no anchor. A citation with a range
+// its book lacks ("Hch 0:1", "Hch 16:99") gets no link.
 func PassageURL(rs []Range) string {
-	if len(rs) == 0 || rs[0].Book == nil {
+	if len(rs) == 0 {
 		return ""
+	}
+	for _, x := range rs {
+		if x.Book == nil || x.Validate() != nil {
+			return ""
+		}
 	}
 	r := rs[0]
 	b := r.Book

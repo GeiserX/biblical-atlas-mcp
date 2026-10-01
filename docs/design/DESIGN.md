@@ -178,7 +178,7 @@ Every record returns `type`, `id`, `name`, `url`, `summary`, `status`, `checked_
 - `events` holds the first 20 events whose `lugares` include the place. Each item has `main: true` when the place is first in the list.
 - `letters` are refs with `as`: `written_here` or `sent_here`. `journey_stops` entries: `journey` (ref), `order`, `date`, `reference`. `finds` and `seat_of` are refs to finds and periods.
 
-**event.** `date`, `places` (refs, the first is where the main action happens), `people` (refs), `present` (refs), `roles` (each `{person, role, date, place}`), `passages`, `kind` (`type`), `narrative_order` (`{series, order, after}` with `after` a ref), `periods` (refs to periods that list it in `sucesos`). `passages` entries are `{text, url}`, where `text` is the citation verbatim and `url` is the jw.org link to read it (5.6).
+**event.** `date`, `places` (refs, the first is where the main action happens), `people` (refs), `present` (refs), `roles` (each `{person, role, date, place}`), `passages`, `kind` (`type`), `narrative_order` (`{series, order, after}` with `after` a ref), `periods` (refs to periods that list it in `sucesos`). `passages` entries are `{text, url}`, where `text` is the citation verbatim and `url` is the jw.org link to read it (5.6), absent when the citation names a chapter or verse its book lacks.
 
 **period.** `kind` (`tipo`), `date`, `ruler` (ref), `office`, `places` (refs, the first is the seat), `events` (refs from `sucesos`), `attested_from` (`consta_desde`).
 
