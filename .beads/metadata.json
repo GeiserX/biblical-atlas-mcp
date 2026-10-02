@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "biblical_atlas_mcp",
+  "project_id": "b5872b0e-fef9-4b24-9c10-293e55a5f913"
+}
