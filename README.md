@@ -9,7 +9,7 @@
   <a href="https://github.com/GeiserX/biblical-atlas-mcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/GeiserX/biblical-atlas-mcp?style=flat-square" alt="License"></a>
 </p>
 
-biblical-atlas-mcp is an MCP server that gives AI agents the [biblical-atlas](https://github.com/GeiserX/biblical-atlas) Bible atlas as nine read-only tools: people, places, events, reigns, letters, journeys and Bible passages. Answers carry the atlas id, a link to the record's card on [the atlas site](https://biblical-atlas.geiser.cloud/) where the record has one, and its sources, most of them on jw.org. The atlas is in Spanish, and the server returns its names and summaries as they are.
+biblical-atlas-mcp is an MCP server that gives AI agents the [biblical-atlas](https://github.com/GeiserX/biblical-atlas) Bible atlas as nine read-only tools: people, places, events, reigns, letters, journeys and Bible passages. Answers carry the atlas id, a link to the record's card on [the atlas site](https://biblical-atlas.geiser.cloud/) where the record has one, and links to its sources: a list answer carries the first one and the total, and `get_record` returns them all. The atlas is in Spanish, and the server returns its names and summaries as they are.
 
 ## Features
 
