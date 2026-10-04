@@ -37,7 +37,7 @@ It downloads the real data file, checks that its format is known, that no record
 1. Update [`CHANGELOG.md`](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/CHANGELOG.md), and set the same version in [`package.json`](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/package.json) and both places in [`server.json`](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/server.json). A test fails when they disagree.
 2. Merge to `main` with CI green.
 3. Tag `vX.Y.Z` and push the tag. [`release.yml`](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/.github/workflows/release.yml) then:
-   - builds the binaries, archives and `checksums.txt` with GoReleaser and publishes the GitHub release;
+   - builds the binaries with GoReleaser, signs the macOS ones with a Developer ID certificate and notarizes them with Apple, then publishes the archives and `checksums.txt` as the GitHub release;
    - builds the linux/amd64 and linux/arm64 image and pushes `ghcr.io/geiserx/biblical-atlas-mcp:vX.Y.Z`;
    - pushes the same image to Docker Hub when the repository variable `DOCKERHUB_ENABLED` is `true`;
    - publishes to npm with trusted publishing when `NPM_PUBLISH_ENABLED` is `true`.
@@ -48,7 +48,7 @@ Semver tags only; the images get no `latest` tag.
 
 | Step | Needs | Until then |
 | --- | --- | --- |
-| GitHub release and binaries | Nothing | Works on the first tag |
+| GitHub release and binaries | Secrets `MACOS_SIGN_P12` (the Developer ID Application `.p12`, base64-encoded) and `MACOS_SIGN_PASSWORD` (its password), `MACOS_NOTARY_ISSUER_ID`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_KEY` (the App Store Connect API key `.p8`, base64-encoded) | The release fails before GoReleaser runs |
 | GHCR image | Nothing. After the first push, set the package to public once in its settings. | Works on the first tag |
 | Docker Hub image and description | Secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`, variables `DOCKERHUB_NAMESPACE` and `DOCKERHUB_ENABLED=true` | Skipped; the release stays green |
 | npm | A trusted publisher on npmjs.com for this repository and `release.yml`, then variable `NPM_PUBLISH_ENABLED=true`. If npm wants the package to exist first, publish the first version by hand once. | Skipped; the release stays green |
