@@ -54,7 +54,7 @@ A stdio client config that uses the binary directly:
 The image starts in HTTP mode on port 8080. Tags are release versions only; there is no `latest` tag.
 
 ```bash
-docker run --rm -p 127.0.0.1:8080:8080 ghcr.io/geiserx/biblical-atlas-mcp:v0.1.1
+docker run --rm -p 127.0.0.1:8080:8080 ghcr.io/geiserx/biblical-atlas-mcp:v0.1.2
 curl http://127.0.0.1:8080/healthz        # ok
 ```
 
