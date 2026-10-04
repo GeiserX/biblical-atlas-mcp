@@ -4,6 +4,8 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ## [Unreleased]
 
+## [0.1.2]
+
 ### Changed
 
 - The macOS binaries are signed with a Developer ID certificate and notarized by Apple, so Gatekeeper runs a downloaded binary without a warning.

@@ -56,7 +56,7 @@ A stdio client with a local copy of the data file and no network:
 The container with a token:
 
 ```bash
-docker run --rm -p 8080:8080 -e MCP_AUTH_TOKEN=change-me ghcr.io/geiserx/biblical-atlas-mcp:v0.1.1
+docker run --rm -p 8080:8080 -e MCP_AUTH_TOKEN=change-me ghcr.io/geiserx/biblical-atlas-mcp:v0.1.2
 ```
 
 An HTTP client config for it:
