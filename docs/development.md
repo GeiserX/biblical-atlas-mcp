@@ -48,7 +48,7 @@ Semver tags only; the images get no `latest` tag.
 
 | Step | Needs | Until then |
 | --- | --- | --- |
-| GitHub release and binaries | Secrets `MACOS_SIGN_P12`, `MACOS_SIGN_PASSWORD`, `MACOS_NOTARY_ISSUER_ID`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_KEY` (Developer ID certificate and App Store Connect API key) | The release fails before GoReleaser runs |
+| GitHub release and binaries | Secrets `MACOS_SIGN_P12` (the Developer ID Application `.p12`, base64-encoded) and `MACOS_SIGN_PASSWORD` (its password), `MACOS_NOTARY_ISSUER_ID`, `MACOS_NOTARY_KEY_ID` and `MACOS_NOTARY_KEY` (the App Store Connect API key `.p8`, base64-encoded) | The release fails before GoReleaser runs |
 | GHCR image | Nothing. After the first push, set the package to public once in its settings. | Works on the first tag |
 | Docker Hub image and description | Secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`, variables `DOCKERHUB_NAMESPACE` and `DOCKERHUB_ENABLED=true` | Skipped; the release stays green |
 | npm | A trusted publisher on npmjs.com for this repository and `release.yml`, then variable `NPM_PUBLISH_ENABLED=true`. If npm wants the package to exist first, publish the first version by hand once. | Skipped; the release stays green |
