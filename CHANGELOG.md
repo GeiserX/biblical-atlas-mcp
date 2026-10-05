@@ -4,6 +4,10 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ## [Unreleased]
 
+### Added
+
+- Each release publishes `server.json` to the official MCP registry from CI, once npm serves the new version.
+
 ## [0.1.2]
 
 ### Changed
