@@ -118,3 +118,10 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
       - run: npm publish --ignore-scripts
+
+  mcp-registry:
+    needs: npm
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/mcp-registry.yml

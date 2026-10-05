@@ -76,6 +76,8 @@ jobs:
             echo "want:           $want"
             exit 1
           fi
+      - name: Wait-for-npm script
+        run: .github/scripts/wait-for-npm_test.sh
 
   image:
     runs-on: ubuntu-latest

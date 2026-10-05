@@ -40,7 +40,8 @@ It downloads the real data file, checks that its format is known, that no record
    - builds the binaries with GoReleaser, signs the macOS ones with a Developer ID certificate and notarizes them with Apple, then publishes the archives and `checksums.txt` as the GitHub release;
    - builds the linux/amd64 and linux/arm64 image and pushes `ghcr.io/geiserx/biblical-atlas-mcp:vX.Y.Z`;
    - pushes the same image to Docker Hub when the repository variable `DOCKERHUB_ENABLED` is `true`;
-   - publishes to npm with trusted publishing when `NPM_PUBLISH_ENABLED` is `true`.
+   - publishes to npm with trusted publishing when `NPM_PUBLISH_ENABLED` is `true`;
+   - then publishes `server.json` to the official MCP registry through [`mcp-registry.yml`](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/.github/workflows/mcp-registry.yml), once npm serves the new version.
 
 Semver tags only; the images get no `latest` tag.
 
@@ -52,15 +53,10 @@ Semver tags only; the images get no `latest` tag.
 | GHCR image | Nothing. After the first push, set the package to public once in its settings. | Works on the first tag |
 | Docker Hub image and description | Secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`, variables `DOCKERHUB_NAMESPACE` and `DOCKERHUB_ENABLED=true` | Skipped; the release stays green |
 | npm | A trusted publisher on npmjs.com for this repository and `release.yml`, then variable `NPM_PUBLISH_ENABLED=true`. If npm wants the package to exist first, publish the first version by hand once. | Skipped; the release stays green |
-| Official MCP registry | `mcp-publisher`, run by hand after the npm version exists | Manual, below |
+| Official MCP registry | Nothing. GitHub's OIDC token proves the workflow runs in `GeiserX/biblical-atlas-mcp`, which grants the `io.github.GeiserX/*` namespace | Skipped with npm |
 
 ### Official MCP registry
 
-After the npm package of the new version is live:
-
-```bash
-mcp-publisher login github
-mcp-publisher publish
-```
+The registry checks that the npm version named in `server.json` exists and carries the same `mcpName` as `package.json`, so the job waits for npm to serve that version first ([`wait-for-npm.sh`](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/.github/scripts/wait-for-npm.sh), up to 15 minutes). To publish a version that is already on npm, run the MCP Registry workflow by hand from `main` (Actions, MCP Registry, Run workflow).
 
 `server.json` lists the npm package only. The container starts in HTTP mode, so an OCI entry that claims stdio would be false.
