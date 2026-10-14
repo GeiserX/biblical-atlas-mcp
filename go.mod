@@ -3,8 +3,8 @@ module github.com/geiserx/biblical-atlas-mcp
 go 1.27
 
 require (
-	github.com/mark3labs/mcp-go v1.1.1
-	golang.org/x/text v0.42.0
+	github.com/mark3labs/mcp-go v1.2.1
+	golang.org/x/text v0.43.0
 )
 
 require (
