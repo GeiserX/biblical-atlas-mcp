@@ -27,7 +27,7 @@ var (
 func getRecordTool() Tool {
 	return Tool{
 		Def: newTool("get_record", "Get one atlas record",
-			`Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`,
+			`Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`,
 			mcp.WithString("type", mcp.Required(), mcp.Description("Record type, from search."), mcp.Enum(typeNames(atlas.Types)...)),
 			mcp.WithString("id", mcp.Required(), mcp.Description("Record id, from search. Case is ignored.")),
 			mcp.WithInteger("relations_offset", mcp.Description("Person only: relations to skip. A person answer holds at most 30 relations; use next_relations_offset from the answer to read the rest."), mcp.DefaultNumber(0), mcp.Min(0)),
@@ -290,7 +290,19 @@ func placeView(s *atlas.Snapshot, o *obj, p *atlas.Place) {
 		}
 		names = append(names, newObj().set("name", n.Name).intp("from", histYear(n.From)).intp("to", histYear(n.To)).set("note", n.Note))
 	}
-	o.set("other_names", names).set("kind", p.Kind).floatp("lat", p.Lat).floatp("lon", p.Lon).set("precision", p.Precision)
+	var parts []*obj
+	for _, pt := range p.Parts {
+		if pt.Name == "" {
+			continue
+		}
+		x := newObj().keep("name", pt.Name).set("note", pt.Note).flag("near", pt.Near)
+		if pt.Place != p.ID {
+			x.set("place", ref(s, atlas.TypePlace, pt.Place))
+		}
+		parts = append(parts, x)
+	}
+	o.set("other_names", names).set("parts", parts).set("part_of", refs(s, atlas.TypePlace, s.PartOf[p.ID])).
+		set("kind", p.Kind).floatp("lat", p.Lat).floatp("lon", p.Lon).set("precision", p.Precision)
 	if p.CoordSource != "" || p.CoordURL != "" {
 		o.set("coord_source", newObj().set("id", p.CoordSource).set("url", p.CoordURL))
 	}

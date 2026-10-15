@@ -4,8 +4,11 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ## [Unreleased]
 
+## [0.1.3]
+
 ### Added
 
+- Places carry their parts: the gates, towers, pools and other named sites inside a place or beside it, which the atlas now lists apart from the place's other names. `search` still finds Jerusalén by «Puerta de las Ovejas», now with `matched: part` and the part named («Puerta de las Ovejas, en Jerusalén»); a part with its own place record finds that place. `get_record` shows a place's `parts` apart from `other_names`, and `part_of` on a place another one lists as a part.
 - Each release publishes `server.json` to the official MCP registry from CI, once npm serves the new version.
 
 ## [0.1.2]
