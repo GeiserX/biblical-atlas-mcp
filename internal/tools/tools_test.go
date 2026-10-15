@@ -92,6 +92,16 @@ var cases = []toolCase{
 		// shared by two ids counts once.
 		want:    []string{`"sources":[{"title":"Perspicacia: «Pablo»","url":"https://wol.jw.org/es/wol/d/r4/lp-s/1200003406","kind":"perspicacia"}],"sources_total":4`},
 		notWant: []string{`"id":"hechos-9"`, `hechos-9-copia`}},
+	{name: "search finds a place by its part", tool: "search", args: map[string]any{"query": "puerta de las ovejas"},
+		want: []string{`"total":1`, `"results":[{"type":"place","id":"jerusalen"`,
+			`"score":100,"matched":"part","part":{"name":"Puerta de las Ovejas","label":"Puerta de las Ovejas, en Jerusalén","of":{"type":"place","id":"jerusalen"`}},
+	{name: "search part beside a place", tool: "search", args: map[string]any{"query": "Getsemaní"},
+		want: []string{`"id":"jerusalen"`, `"label":"Huerto de Getsemaní, junto a Jerusalén"`, `"near":true}`}},
+	{name: "search linked part is the linked place by name", tool: "search", args: map[string]any{"query": "Siloam"},
+		// The part links to its own place, so Jerusalén gets no hit, and the
+		// linked place's own name wins the tie with the part.
+		want:    []string{`"total":1`, `"id":"estanque-de-siloam"`, `"matched":"name"`},
+		notWant: []string{`"id":"jerusalen"`, `"part"`}},
 	{name: "search no match", tool: "search", args: map[string]any{"query": "zzzz"},
 		want: []string{`{"total":0,"offset":0,"limit":10,"results":[]`}},
 	{name: "search missing query", tool: "search", args: map[string]any{}, wantErr: "query is required"},
@@ -131,6 +141,15 @@ var cases = []toolCase{
 	{name: "place without point", tool: "get_record", args: map[string]any{"type": "place", "id": "acsaf"},
 		want:    []string{`"candidates":[{"name":"Primer sitio de prueba","status":"alternativa","shape":"punto","lat":32.872761,"lon":35.15133`, `"radius_km":5`},
 		notWant: []string{`"lat":null`}},
+	{name: "place parts apart from names", tool: "get_record", args: map[string]any{"type": "place", "id": "jerusalen"},
+		want: []string{`"other_names":[{"name":"Salem","from":-1933,"to":-1933,"note":"Nombre antiguo (prueba)."}],"parts":[` +
+			`{"name":"Puerta de las Ovejas","note":"Puerta de prueba al norte."},` +
+			`{"name":"Estanque de Siloam","note":"Estanque de prueba al sur.","place":{"type":"place","id":"estanque-de-siloam","name":"Estanque de Siloam","url":"https://biblical-atlas.geiser.cloud/#sel=lugar:estanque-de-siloam"}},` +
+			`{"name":"Huerto de Getsemaní","note":"Huerto de prueba al este.","near":true}],"kind":"ciudad"`},
+		notWant: []string{`"part_of"`}},
+	{name: "place that is a part", tool: "get_record", args: map[string]any{"type": "place", "id": "estanque-de-siloam"},
+		want:    []string{`"part_of":[{"type":"place","id":"jerusalen","name":"Jerusalén"`},
+		notWant: []string{`"parts"`}},
 	{name: "place colliding id", tool: "get_record", args: map[string]any{"type": "place", "id": "adan"},
 		want: []string{`"type":"place","id":"adan"`, `"url":"https://biblical-atlas.geiser.cloud/#sel=lugar:adan"`}},
 	{name: "event with roles", tool: "get_record", args: map[string]any{"type": "event", "id": "creacion-de-adan"},
@@ -202,7 +221,7 @@ var cases = []toolCase{
 	{name: "tours", tool: "list_records", args: map[string]any{"type": "tour"}, want: []string{`"total":1`}},
 	{name: "events are not listed here", tool: "list_records", args: map[string]any{"type": "event"}, wantErr: "type must be one of person, place, period"},
 	{name: "person needs kind", tool: "list_records", args: map[string]any{"type": "person"}, wantErr: "kind is required for type person; values present: high_priest"},
-	{name: "unknown kind lists values", tool: "list_records", args: map[string]any{"type": "place", "kind": "volcan"}, wantErr: `kind "volcan" is not in the atlas; values present: ciudad, region`},
+	{name: "unknown kind lists values", tool: "list_records", args: map[string]any{"type": "place", "kind": "volcan"}, wantErr: `kind "volcan" is not in the atlas; values present: ciudad, lago, region`},
 	{name: "kind rejected for letters", tool: "list_records", args: map[string]any{"type": "letter", "kind": "x"}, wantErr: "kind is only accepted for person, place and period"},
 
 	// list_events
@@ -296,7 +315,7 @@ var cases = []toolCase{
 
 	// places_near
 	{name: "near a place", tool: "places_near", args: map[string]any{"place": "jerusalen"},
-		want: []string{`"total":1`, `"id":"adan"`, `"distance_km":46.`, `"origin":{"lat":31.776667,"lon":35.234167,"place":{"type":"place","id":"jerusalen"`, `"without_coordinates":1`}},
+		want: []string{`"total":1`, `"id":"adan"`, `"distance_km":46.`, `"origin":{"lat":31.776667,"lon":35.234167,"place":{"type":"place","id":"jerusalen"`, `"without_coordinates":2`}},
 	{name: "near a point by kind", tool: "places_near", args: map[string]any{"lat": 32.8, "lon": 35.5, "radius_km": 200.0, "kind": "region"},
 		want: []string{`"total":1`, `"id":"galilea"`, `"kind":"region"`}},
 	{name: "place without a point", tool: "places_near", args: map[string]any{"place": "acsaf"},

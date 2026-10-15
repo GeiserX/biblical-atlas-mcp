@@ -240,11 +240,22 @@ type Candidate struct {
 	Sources  []string  `json:"fuentes"`
 }
 
+// Part is a named site inside a place or beside it (a gate, a tower, a
+// pool), as opposed to another name of the whole place. Place, when set, is
+// the id of the part's own place record.
+type Part struct {
+	Name  string `json:"nombre"`
+	Note  string `json:"nota"`
+	Place string `json:"lugar"`
+	Near  bool   `json:"cerca"`
+}
+
 // Place is an entry of "lugares".
 type Place struct {
 	Common
 	Name        string      `json:"nombre"`
 	Names       []AltName   `json:"nombres"`
+	Parts       []Part      `json:"partes"`
 	Kind        string      `json:"tipo"`
 	Lat         *float64    `json:"lat"`
 	Lon         *float64    `json:"lon"`

@@ -14,7 +14,7 @@ func searchTool() Tool {
 	}
 	return Tool{
 		Def: newTool("search", "Search the atlas",
-			`Find people, places, events, periods, letters, journeys, archaeological finds, tours, Bible books and Hebrew months in the atlas by name. Use this first to get the type and id that every other tool needs. Matching ignores accents and case. Names are Spanish ("Pablo", "Jerusalén", "Diluvio"). Homonyms come back as separate results, each with a disambiguation line.`,
+			`Find people, places, events, periods, letters, journeys, archaeological finds, tours, Bible books and Hebrew months in the atlas by name. Use this first to get the type and id that every other tool needs. Matching ignores accents and case. Names are Spanish ("Pablo", "Jerusalén", "Diluvio"). Homonyms come back as separate results, each with a disambiguation line. A gate, tower, pool or other site inside a place finds that place, with matched "part" and the part named.`,
 			append(opts, pagingOptions(10, 50)...)...),
 		Handle: search,
 	}
@@ -50,6 +50,9 @@ func search(c *Call) (*obj, error) {
 	var results []*obj
 	for _, h := range hits[lo:hi] {
 		o := item(s, h.Rec).keep("score", h.Score).keep("matched", h.Matched)
+		if h.Part != nil {
+			o.keep("part", partMatch(s, h))
+		}
 		if h.Rec.Type == atlas.TypePerson {
 			if n := s.SameName[atlas.Norm(h.Rec.Name)]; n > 1 {
 				o.keep("same_name_count", n)
@@ -58,4 +61,19 @@ func search(c *Call) (*obj, error) {
 		results = append(results, o)
 	}
 	return page(s, len(hits), offset, limit, results), nil
+}
+
+// partMatch names the part a hit came through: "Puerta de las Ovejas, en
+// Jerusalén", or "junto a" for a part beside the place, as the site words it.
+func partMatch(s *atlas.Snapshot, h atlas.Hit) *obj {
+	parent := s.Rec(atlas.TypePlace, h.PartOf)
+	where := "en"
+	if h.Part.Near {
+		where = "junto a"
+	}
+	o := newObj().keep("name", h.Part.Name)
+	if parent != nil {
+		o.keep("label", h.Part.Name+", "+where+" "+parent.Name).set("of", recRef(parent))
+	}
+	return o.flag("near", h.Part.Near)
 }

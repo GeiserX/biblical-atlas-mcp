@@ -19,7 +19,16 @@ type Rec struct {
 	Value          any // *Person, *Place, *Event, ...
 
 	texts         []string // normalised names searched
+	parts         []partText
 	summaryTokens []string
+}
+
+// partText is a place part that finds a record: the parent place, or the
+// place the part links to.
+type partText struct {
+	norm   string
+	part   *Part
+	parent string // id of the place that lists the part
 }
 
 // RecKey names a record.
@@ -90,6 +99,7 @@ type Snapshot struct {
 	StopsByPlace     map[string][]StopRef
 	FindsByPlace     map[string][]string
 	SeatsByPlace     map[string][]string
+	PartOf           map[string][]string // place id -> places that list it as a part
 	PeriodsByEvent   map[string][]string
 	EventRanges      [][]Range
 	CitedBy          map[Chapter][]RecKey
@@ -122,12 +132,13 @@ func Build(f *File) *Snapshot {
 		EventsByPerson: map[string][]int{}, EventsByPlace: map[string][]int{},
 		LettersByPlace: map[string][]RoleRef{}, LettersByPerson: map[string][]RoleRef{},
 		JourneysByPerson: map[string][]RoleRef{}, StopsByPlace: map[string][]StopRef{},
-		FindsByPlace: map[string][]string{}, SeatsByPlace: map[string][]string{},
+		FindsByPlace: map[string][]string{}, SeatsByPlace: map[string][]string{}, PartOf: map[string][]string{},
 		PeriodsByEvent: map[string][]string{}, CitedBy: map[Chapter][]RecKey{},
 		SourceChapter: map[string]Chapter{}, Lives: map[string]*Life{}, FullyRead: map[string]bool{},
 	}
 	s.Books = newBookTable(f.Books)
 	s.addRecords()
+	s.indexParts()
 	s.indexRelations()
 	s.indexEvents()
 	s.indexOthers()
@@ -216,6 +227,34 @@ func (s *Snapshot) addRecords() {
 	}
 	for _, t := range f.Topics {
 		s.add(&Rec{Type: TypeCalendarTopic, ID: t.ID, Name: t.Title, Common: &t.Common, Value: t}, t.Title)
+	}
+}
+
+// indexParts makes each place part searchable. A part finds its own place
+// when it links to one, and the place that lists it otherwise. A link to a
+// missing place, or to the parent itself, falls back to the parent.
+func (s *Snapshot) indexParts() {
+	f := s.File
+	for _, id := range f.PlaceOrder {
+		parent := s.Rec(TypePlace, id)
+		if parent == nil {
+			continue
+		}
+		for i := range f.Places[id].Parts {
+			pt := &f.Places[id].Parts[i]
+			n := Norm(pt.Name)
+			if n == "" {
+				continue
+			}
+			target := parent
+			if pt.Place != "" && pt.Place != id && s.ref(TypePlace, pt.Place) {
+				target = s.Rec(TypePlace, pt.Place)
+				if of := s.PartOf[pt.Place]; len(of) == 0 || of[len(of)-1] != id {
+					s.PartOf[pt.Place] = append(of, id)
+				}
+			}
+			target.parts = append(target.parts, partText{norm: n, part: pt, parent: id})
+		}
 	}
 }
 
@@ -630,7 +669,9 @@ func (s *Snapshot) sortName(k RecKey) string {
 type Hit struct {
 	Rec     *Rec
 	Score   int
-	Matched string // "name" or "summary"
+	Matched string // "name", "part" or "summary"
+	Part    *Part  // the part that matched, when Matched is "part"
+	PartOf  string // id of the place that lists Part
 }
 
 // Search scores every record of the wanted types against the query. An
@@ -649,6 +690,17 @@ func (s *Snapshot) Search(query string, types map[Type]bool) []Hit {
 				if sc := ScoreText(nq, n); sc > best {
 					best = sc
 				}
+			}
+			// A name beats a part with the same score.
+			var part *partText
+			for i, pt := range r.parts {
+				if sc := ScoreText(nq, pt.norm); sc > best {
+					best, part = sc, &r.parts[i]
+				}
+			}
+			if part != nil {
+				hits = append(hits, Hit{Rec: r, Score: best, Matched: "part", Part: part.part, PartOf: part.parent})
+				continue
 			}
 			if best > 0 {
 				hits = append(hits, Hit{Rec: r, Score: best, Matched: "name"})

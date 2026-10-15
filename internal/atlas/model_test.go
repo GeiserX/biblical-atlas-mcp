@@ -14,7 +14,7 @@ func TestDecodeFixture(t *testing.T) {
 	if f.Format != "biblical-atlas/v0" || f.Generated != "2026-09-30" {
 		t.Fatalf("format %q generated %q", f.Format, f.Generated)
 	}
-	if len(f.People) != 8 || len(f.Places) != 7 || len(f.Events) != 9 || len(f.Books) != 5 || len(f.Months) != 2 || len(f.Topics) != 1 {
+	if len(f.People) != 8 || len(f.Places) != 8 || len(f.Events) != 9 || len(f.Books) != 5 || len(f.Months) != 2 || len(f.Topics) != 1 {
 		t.Fatalf("counts: %d people, %d places, %d events, %d books, %d months, %d topics",
 			len(f.People), len(f.Places), len(f.Events), len(f.Books), len(f.Months), len(f.Topics))
 	}
@@ -222,5 +222,63 @@ func TestMalformedEntriesDoNotPanic(t *testing.T) {
 	// The relation's reference is read once for each of its two people.
 	if s.Stats.BadCitations != 4 || s.Stats.BadEventPassages != 1 {
 		t.Fatalf("bad citations: %+v", s.Stats)
+	}
+}
+
+// TestParts: a part finds the place that lists it, or the place it links
+// to; a link to a missing place counts as dangling and falls back to the
+// parent; a name beats a part with the same score.
+func TestParts(t *testing.T) {
+	build := func(old, new string) *Snapshot {
+		t.Helper()
+		body := string(readFixture(t, "data.json"))
+		if strings.Count(body, old) != 1 {
+			t.Fatalf("fixture changed: %q found %d times", old, strings.Count(body, old))
+		}
+		f, err := Decode([]byte(strings.Replace(body, old, new, 1)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return Build(f)
+	}
+	only := func(hits []Hit, id string) Hit {
+		t.Helper()
+		var out []Hit
+		for _, h := range hits {
+			if h.Rec.ID == id {
+				out = append(out, h)
+			}
+		}
+		if len(out) != 1 {
+			t.Fatalf("want one hit on %s, got %+v", id, hits)
+		}
+		return out[0]
+	}
+	places := map[Type]bool{TypePlace: true}
+
+	s := fixture(t)
+	if h := only(s.Search("Puerta de las Ovejas", places), "jerusalen"); h.Matched != "part" || h.Score != ScoreExact || h.PartOf != "jerusalen" || h.Part.Name != "Puerta de las Ovejas" {
+		t.Fatalf("part hit: %+v", h)
+	}
+	if got := s.PartOf["estanque-de-siloam"]; len(got) != 1 || got[0] != "jerusalen" {
+		t.Fatalf("PartOf: %v", s.PartOf)
+	}
+	if h := only(s.Search("Estanque de Siloam", places), "estanque-de-siloam"); h.Matched != "name" || h.Part != nil {
+		t.Fatalf("a name must beat a part with the same score: %+v", h)
+	}
+
+	// A linked part under another wording finds the linked place.
+	s = build(`"nombre": "Estanque de Siloam", "lugar"`, `"nombre": "Piscina de prueba", "lugar"`)
+	if h := only(s.Search("piscina", places), "estanque-de-siloam"); h.Matched != "part" || h.PartOf != "jerusalen" {
+		t.Fatalf("linked part hit: %+v", h)
+	}
+
+	// A link to a missing place stays on the parent and counts as dangling.
+	s = build(`"lugar": "estanque-de-siloam"`, `"lugar": "no-existe"`)
+	if s.Stats.Dangling != 2 || len(s.PartOf) != 0 {
+		t.Fatalf("dangling part: %+v %v", s.Stats, s.PartOf)
+	}
+	if h := only(s.Search("Estanque de Siloam", places), "jerusalen"); h.Matched != "part" {
+		t.Fatalf("dangling part hit: %+v", h)
 	}
 }

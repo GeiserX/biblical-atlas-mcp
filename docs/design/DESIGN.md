@@ -125,7 +125,7 @@ A place without lat/lon has an unknown site; its candidates list the proposed si
 
 ### 4.1 `search`
 
-Description: `Find people, places, events, periods, letters, journeys, archaeological finds, tours, Bible books and Hebrew months in the atlas by name. Use this first to get the type and id that every other tool needs. Matching ignores accents and case. Names are Spanish ("Pablo", "Jerusalén", "Diluvio"). Homonyms come back as separate results, each with a disambiguation line.`
+Description: `Find people, places, events, periods, letters, journeys, archaeological finds, tours, Bible books and Hebrew months in the atlas by name. Use this first to get the type and id that every other tool needs. Matching ignores accents and case. Names are Spanish ("Pablo", "Jerusalén", "Diluvio"). Homonyms come back as separate results, each with a disambiguation line. A gate, tower, pool or other site inside a place finds that place, with matched "part" and the part named.`
 
 | Parameter | Type | Default | Rules |
 | --- | --- | --- | --- |
@@ -137,7 +137,7 @@ Description: `Find people, places, events, periods, letters, journeys, archaeolo
 Text searched per type:
 
 - `person`: `nombre` and `nombres[].nombre`
-- `place`: `nombre`, `nombres[].nombre` and `candidatos[].nombre`
+- `place`: `nombre`, `nombres[].nombre`, `candidatos[].nombre` and `partes[].nombre`
 - `event`: `titulo` and `buscar`
 - `period`: `nombre` and `buscar`
 - `letter`: `libro`, plus the book's `abr` and `formas`
@@ -148,11 +148,13 @@ Text searched per type:
 
 Scoring takes the best score over a record's texts, with query and text both normalised as in 5.5: 100 for an exact match, 80 for a prefix, 60 when any word of the text starts with the query, 30 for a substring when the query has 3 or more characters. One further tier scores 20 when every word of the query, 4 or more characters in total, appears in the record's `resumen`. Order is score descending, then the type order of 3.1, then name, then id.
 
-Output: the paging object. Each result is an `item` plus `score` and `matched`, which is `name` or `summary`. A person whose name is shared also gets `same_name_count`.
+A place is also found by its parts (`partes[].nombre`): the named sites inside it or beside it, such as a gate, a tower or a pool. A part with `lugar` finds that linked place instead of the one that lists it. A part competes with the record's names on the same scale, and a name wins a tie.
+
+Output: the paging object. Each result is an `item` plus `score` and `matched`, which is `name`, `part` or `summary`. A hit through a part also carries `part`: `{name, label, of, near}`, where `of` is a ref to the place that lists the part, `label` reads the way the site words it («Puerta de las Ovejas, en Jerusalén», or «junto a» when `near`), and `near` (`cerca`) is present only when true. A person whose name is shared also gets `same_name_count`.
 
 ### 4.2 `get_record`
 
-Description: `Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`
+Description: `Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`
 
 | Parameter | Type | Default | Rules |
 | --- | --- | --- | --- |
@@ -171,8 +173,9 @@ Every record returns `type`, `id`, `name`, `url`, `summary`, `status`, `checked_
 - `events` holds the first 20 events that list the person, in file order, as items with the person's `role` when `roles` has one. `list_events` with `person` pages the rest.
 - `letters` are refs to letters the person wrote, received, carried or is named in, each with `as`: `writer`, `recipient`, `carrier` or `named`. `journeys` are refs with `as`: `traveller` or `companion`.
 
-**place.** `other_names` (with `from` and `to` years when dated), `kind` (`tipo`), `lat`, `lon`, `precision`, `coord_source` (`{id,url}`), `coord_note`, `candidates`, `people`, `events`, `events_total`, `letters`, `journey_stops`, `finds`, `seat_of`.
+**place.** `other_names` (with `from` and `to` years when dated), `parts`, `part_of`, `kind` (`tipo`), `lat`, `lon`, `precision`, `coord_source` (`{id,url}`), `coord_note`, `candidates`, `people`, `events`, `events_total`, `letters`, `journey_stops`, `finds`, `seat_of`.
 
+- `parts` entries (`partes`): `name`, `note`, `near` (only when true: the site is beside the place, not in it) and `place`, a ref to the part's own place record when it has one. They are sites in or at the place, never other names of it. `part_of` lists the places that name this one as a part.
 - `candidates` entries: `name`, `status` (`estado`), `shape` (`geometria.tipo`), `lat`, `lon`, `radius_km`, `to` (`{lat,lon}`), `reason`, `note`, `sources`.
 - `people` is `{born, lived, died}`, refs from the reverse index of `born_in`, `lived_in` and `died_in`, at most 30 per group, with `born_total`, `lived_total` and `died_total`.
 - `events` holds the first 20 events whose `lugares` include the place. Each item has `main: true` when the place is first in the list.
