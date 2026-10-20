@@ -9,6 +9,9 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -o /out/biblical-atlas-mcp ./cmd/server
 
 FROM alpine:3.24
+# The base image can lag the CA bundle; take the current one, which drops
+# the compromised eMudhra (emSign) intermediates.
+RUN apk upgrade --no-cache ca-certificates-bundle
 LABEL io.modelcontextprotocol.server.name="io.github.GeiserX/biblical-atlas-mcp"
 COPY --from=builder /out/biblical-atlas-mcp /usr/local/bin/biblical-atlas-mcp
 USER 65534:65534

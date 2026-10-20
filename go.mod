@@ -2,6 +2,10 @@ module github.com/geiserx/biblical-atlas-mcp
 
 go 1.27
 
+// go1.27.3 rejects certificates from the eight compromised eMudhra (emSign)
+// intermediates. setup-go builds CI and the release binaries with this version.
+toolchain go1.27.3
+
 require (
 	github.com/mark3labs/mcp-go v1.2.1
 	golang.org/x/text v0.43.0
