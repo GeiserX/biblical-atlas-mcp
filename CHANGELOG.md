@@ -4,6 +4,12 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ## [Unreleased]
 
+## [0.1.4]
+
+### Security
+
+- Built with go1.27.3, which rejects certificates issued through the eight compromised eMudhra (emSign) intermediates. Earlier Linux binaries and images trusted them, so a forged certificate for the data host would have been accepted.
+
 ## [0.1.3]
 
 ### Added
