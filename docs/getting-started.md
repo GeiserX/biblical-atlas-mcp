@@ -54,7 +54,7 @@ A stdio client config that uses the binary directly:
 The image starts in HTTP mode on port 8080, listening on every interface inside the container, so it needs a token: without `MCP_AUTH_TOKEN` it exits at start with a message saying so. Tags are release versions only; there is no `latest` tag.
 
 ```bash
-docker run --rm -p 127.0.0.1:8080:8080 -e MCP_AUTH_TOKEN=change-me ghcr.io/geiserx/biblical-atlas-mcp:v0.1.4
+docker run --rm -p 127.0.0.1:8080:8080 -e MCP_AUTH_TOKEN=change-me ghcr.io/geiserx/biblical-atlas-mcp:v0.2.0
 curl http://127.0.0.1:8080/healthz        # ok
 ```
 
