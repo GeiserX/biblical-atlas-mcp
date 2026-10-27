@@ -13,7 +13,8 @@ All settings are environment variables and all of them are optional. A value tha
 | `BIBLICAL_ATLAS_TIMEOUT` | `30s` | Limit for one download. A Go duration from `1s` to `5m`. |
 | `TRANSPORT` | unset | `stdio` for stdio. Unset or `http` for streamable HTTP. |
 | `LISTEN_ADDR` | `127.0.0.1:8080` | HTTP listen address. The container image sets `0.0.0.0:8080`. |
-| `MCP_AUTH_TOKEN` | unset | When set, HTTP requests to `/mcp` need `Authorization: Bearer <token>`. |
+| `MCP_AUTH_TOKEN` | unset | HTTP requests to `/mcp` need `Authorization: Bearer <token>`. Required when `LISTEN_ADDR` is not a loopback address: the server refuses to start without it. No white space. |
+| `MCP_ALLOWED_ORIGINS` | unset | Comma-separated browser origins (`https://app.example.org`) that may call `/mcp` from a web page. A listed origin gets the CORS preflight answer and `Access-Control-Allow-Origin`; the token is still checked. Unset, every cross-origin browser request gets 403. |
 
 `<user cache dir>` is Go's `os.UserCacheDir()`: `~/Library/Caches` on macOS, `$XDG_CACHE_HOME` or `~/.cache` on Linux, `%LocalAppData%` on Windows. The container image sets `BIBLICAL_ATLAS_CACHE_DIR=/tmp/biblical-atlas-mcp`.
 
@@ -32,10 +33,12 @@ Any other argument exits with code 2.
 
 | Path | Auth | What it does |
 | --- | --- | --- |
-| `/mcp` | Bearer token when `MCP_AUTH_TOKEN` is set | Streamable HTTP, stateless: no session is kept between requests. `POST` only; a `GET` event stream is refused with 405, since the server sends no notifications. A body over 1 MB gets 413. |
+| `/mcp` | Bearer token when `MCP_AUTH_TOKEN` is set | Streamable HTTP, stateless: no session is kept between requests. `POST` only; a `GET` event stream is refused with 405, since the server sends no notifications. A body over 1 MB gets 413. A cross-origin browser request from an origin not in `MCP_ALLOWED_ORIGINS` gets 403. At most 32 requests are served at once; the next gets 503 with `Retry-After: 1`. |
 | `/healthz` | None | Returns `ok`. It never touches the data. |
 
-The data is public, so the token is optional on every address. Set it anyway when the port is reachable by anyone else, and put a reverse proxy with TLS in front if the server is exposed beyond one machine.
+The data is public, but the tools still cost CPU, so the token is required as soon as the server listens beyond this machine (`0.0.0.0`, a LAN address, or the container's default). On `127.0.0.1` it stays optional; there the SDK also refuses requests whose `Host` header is not local, which stops DNS rebinding. The `Bearer` scheme is matched in any case, and the token is compared in constant time. Put a reverse proxy with TLS in front if the server is exposed beyond one machine.
+
+The protocol versions are 2026-07-28 down to 2024-11-05 on both transports. A 2026-07-28 request over HTTP carries the `MCP-Protocol-Version`, `Mcp-Method` and, for `tools/call`, `Mcp-Name` headers; a missing or mismatched header gets 400.
 
 ## Client examples
 
@@ -56,7 +59,7 @@ A stdio client with a local copy of the data file and no network:
 The container with a token:
 
 ```bash
-docker run --rm -p 8080:8080 -e MCP_AUTH_TOKEN=change-me ghcr.io/geiserx/biblical-atlas-mcp:v0.1.4
+docker run --rm -p 127.0.0.1:8080:8080 -e MCP_AUTH_TOKEN=change-me ghcr.io/geiserx/biblical-atlas-mcp:v0.1.4
 ```
 
 An HTTP client config for it:

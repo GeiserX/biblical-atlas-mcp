@@ -16,12 +16,15 @@ var listableTypes = []atlas.Type{
 func listRecordsTool() Tool {
 	opts := []mcp.ToolOption{
 		mcp.WithString("type", mcp.Required(), mcp.Description("What to list. Use list_events for events."), mcp.Enum(typeNames(listableTypes)...)),
-		mcp.WithString("kind", mcp.Description(`Required for person (an office, for example "high_priest" or "king") and place (a place kind, for example "rio" or "ciudad"). Optional for period (for example "rey", "potencia", "era"). An unknown value returns the values present.`)),
+		mcp.WithString("kind", mcp.Description(`Required for person (an office, for example "high_priest" or "king") and place (a place kind, for example "rio" or "ciudad"). Optional for period (for example "rey", "potencia", "era"). dataset_info lists the values present; an unknown value returns them too.`), mcp.MaxLength(60)),
 	}
 	return Tool{
 		Def: newTool("list_records", "List atlas records",
 			`List the atlas's small collections in full: periods (reigns, empires, eras, high priests, governors), letters, journeys, archaeological finds, guided tours, Bible books, Hebrew months and calendar topics. Also lists places of one kind (for example every river) and people who held one office (for example every high priest). Use search when you have a name, and list_events for events.`,
-			append(opts, pagingOptions(20, maxLimit)...)...),
+			append(append(opts, pagingOptions(20, maxLimit)...), outputSchema(pageSchema(itemSchema(schema{
+				"kind": strS, "lat": numS, "lon": numS, "office": anyObject, "ruler": refSchema,
+				"number": intS, "abbreviation": strS, "chapters": intS, "fully_read": boolS,
+			}), nil)))...),
 		Handle: listRecords,
 	}
 }

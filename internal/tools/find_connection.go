@@ -12,10 +12,23 @@ const maxSharedEvents = 10
 func findConnectionTool() Tool {
 	return Tool{
 		Def: newTool("find_connection", "Find how two people are connected",
-			`How two people are connected: the shortest chain of family ties, succession, discipleship and companionship between them, one step at a time with the atlas's Spanish phrase and the Bible reference behind each step, plus the events both take part in. Use for "how is Rut related to David" or "did Timoteo know Pedro".`,
-			mcp.WithString("from", mcp.Required(), mcp.Description("Person id from search.")),
-			mcp.WithString("to", mcp.Required(), mcp.Description("Another person id from search.")),
-			mcp.WithInteger("max_steps", mcp.Description("Longest chain to look for."), mcp.DefaultNumber(8), mcp.Min(1), mcp.Max(12)),
+			`How two people are connected: the shortest chain of family ties, succession, discipleship and companionship between them, one step at a time with the atlas's Spanish phrase and the Bible reference behind each step, plus the events both take part in. In each step, word is the role of the person word_of names: "to" or "from". Use for "how is Rut related to David" or "did Timoteo know Pedro".`,
+			idOption("from", `Person id from search, for example "rut".`, mcp.Required()),
+			idOption("to", `Another person id from search, for example "david".`, mcp.Required()),
+			mcp.WithInteger("max_steps", mcp.Description("Longest chain to look for, in relation steps."), mcp.DefaultNumber(8), mcp.Min(1), mcp.Max(12)),
+			outputSchema(object(schema{
+				"from":      refSchema,
+				"to":        refSchema,
+				"connected": boolS,
+				"steps": arrayOf(object(schema{
+					"from": refSchema, "to": refSchema, "phrase": strS, "type": strS, "word": strS,
+					"word_of":   schema{"type": "string", "enum": []string{"from", "to"}},
+					"reference": strS, "status": strS, "sources": arrayOf(sourceSchema),
+				}, "from", "to")),
+				"shared_events":       arrayOf(itemSchema(nil)),
+				"shared_events_total": intS,
+				"dataset":             strS,
+			}, "from", "to", "connected", "shared_events_total")),
 		),
 		Handle: findConnection,
 	}

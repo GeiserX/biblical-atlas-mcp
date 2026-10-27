@@ -1,10 +1,29 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.GeiserX/biblical-atlas-mcp",
+  "title": "Biblical Atlas",
   "description": "Spanish Bible atlas as MCP tools: people, places, events, passages, each linked to its source",
+  "websiteUrl": "https://github.com/GeiserX/biblical-atlas-mcp",
+  "icons": [
+    {
+      "src": "https://biblical-atlas.geiser.cloud/favicon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    },
+    {
+      "src": "https://biblical-atlas.geiser.cloud/apple-touch-icon.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "180x180"
+      ]
+    }
+  ],
   "repository": {
     "url": "https://github.com/GeiserX/biblical-atlas-mcp",
-    "source": "github"
+    "source": "github",
+    "id": "1398284986"
   },
   "version": "0.1.4",
   "packages": [
@@ -40,6 +59,13 @@
         {
           "name": "BIBLICAL_ATLAS_REFRESH",
           "description": "How long a copy is served before asking again (default 1h, 0 = never)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "BIBLICAL_ATLAS_TIMEOUT",
+          "description": "Limit for one download, a Go duration from 1s to 5m (default 30s)",
           "isRequired": false,
           "format": "string",
           "isSecret": false

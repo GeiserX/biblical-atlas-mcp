@@ -324,7 +324,7 @@ func TestLocalFileNeverTouchesTheNetwork(t *testing.T) {
 	s := NewStore(Options{URL: srv.URL, File: path, CacheDir: cache, TTL: time.Hour, Logf: t.Logf})
 	s.now = clock.Now
 	snap, err := s.Snapshot(context.Background())
-	if err != nil || snap.Generated != "2026-09-30" || snap.Source != path {
+	if err != nil || snap.Generated != "2026-09-30" || snap.Source != "local file data.json" {
 		t.Fatalf("file load: %v", err)
 	}
 	// A changed file is reloaded after the TTL.
@@ -441,5 +441,59 @@ func TestBuildPanicKeepsTheOldCopy(t *testing.T) {
 	status := s.Status()
 	if kept != first || !status.Stale || !strings.Contains(status.RefreshError, "boom") {
 		t.Fatalf("after a panic: same=%v status=%+v", kept == first, status)
+	}
+}
+
+// A credential in the data URL, or the directory of a local file, never
+// reaches a client: not in the load error, not in Status.
+func TestSourceRedacted(t *testing.T) {
+	ctx := context.Background()
+	st, plain := startSite(t, nil, `"x"`)
+	st.status = http.StatusInternalServerError
+	secret := strings.Replace(plain, "http://", "http://reader:pa55word@", 1) + "?token=t0psecret#frag"
+	s, _ := newTestStore(t, secret, "")
+	_, err := s.Snapshot(ctx)
+	if err == nil || !strings.Contains(err.Error(), plain) {
+		t.Fatalf("want an error naming %s, got %v", plain, err)
+	}
+	for _, text := range []string{err.Error(), s.Source(), s.LogSource(), s.Status().RefreshError, s.Status().Source} {
+		for _, leak := range []string{"pa55word", "reader", "t0psecret", "frag"} {
+			if strings.Contains(text, leak) {
+				t.Errorf("%q leaks %q", text, leak)
+			}
+		}
+	}
+	// A transport error carries the URL too, with the password masked by
+	// the HTTP client; the query must still go.
+	s, _ = newTestStore(t, "http://reader:pa55word@127.0.0.1:1/data.json?token=t0psecret", "")
+	_, err = s.Snapshot(ctx)
+	if err == nil || strings.Contains(err.Error(), "t0psecret") || strings.Contains(err.Error(), "reader") {
+		t.Fatalf("transport error leaks the URL: %v", err)
+	}
+
+	// A redirect to a URL with its own credentials: the error names the
+	// target, which must come out redacted too.
+	redir := httptest.NewServer(http.RedirectHandler("http://127.0.0.1:1/data.json?sig=r3dirsecret", http.StatusFound))
+	t.Cleanup(redir.Close)
+	s, _ = newTestStore(t, redir.URL, "")
+	_, err = s.Snapshot(ctx)
+	if err == nil || !strings.Contains(err.Error(), "127.0.0.1:1/data.json") {
+		t.Fatalf("want an error naming the redirect target, got %v", err)
+	}
+	for _, text := range []string{err.Error(), s.Status().RefreshError} {
+		if strings.Contains(text, "r3dirsecret") {
+			t.Errorf("redirect error leaks the target's query: %q", text)
+		}
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "atlas.json")
+	f := NewStore(Options{File: path})
+	_, err = f.Snapshot(ctx)
+	if err == nil || strings.Contains(err.Error(), dir) || !strings.Contains(err.Error(), "local file atlas.json") {
+		t.Fatalf("missing file error: %v", err)
+	}
+	if f.Source() != "local file atlas.json" || f.LogSource() != path {
+		t.Fatalf("Source %q, LogSource %q", f.Source(), f.LogSource())
 	}
 }

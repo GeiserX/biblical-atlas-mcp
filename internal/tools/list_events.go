@@ -14,17 +14,20 @@ func listEventsTool() Tool {
 	opts := []mcp.ToolOption{
 		mcp.WithInteger("from_year", mcp.Description("Signed historical year: -607 is 607 a.e.c. (BCE), 33 is 33 e.c. (CE). No year 0."), mcp.Min(MinYear), mcp.Max(MaxYear)),
 		mcp.WithInteger("to_year", mcp.Description("End of the range, same convention. Defaults to from_year. Needs from_year."), mcp.Min(MinYear), mcp.Max(MaxYear)),
-		mcp.WithString("person", mcp.Description("Person id from search.")),
-		mcp.WithString("place", mcp.Description("Place id from search.")),
-		mcp.WithString("role", mcp.Description(`The person's role in the event, for example "born", "died", "spoke". Needs person.`)),
-		mcp.WithString("kind", mcp.Description(`Kind of event, for example "speech", "death", "birth", "writing".`)),
-		mcp.WithString("book", mcp.Description(`Bible book: name, abbreviation or slug ("Rut", "Hch", "1-samuel"). Matches the events of the book's own story, marked in_story: true (listed first, in story order, when no year is given), and also the events that only cite a passage of the book.`)),
+		idOption("person", `Person id from search, for example "pablo".`),
+		idOption("place", `Place id from search, for example "jerusalen".`),
+		mcp.WithString("role", mcp.Description(`The person's role in the event, for example "born", "died", "spoke". Needs person. dataset_info lists the roles present.`), mcp.MaxLength(40)),
+		mcp.WithString("kind", mcp.Description(`Kind of event, for example "speech", "death", "birth", "writing". dataset_info lists the kinds present.`), mcp.MaxLength(40)),
+		mcp.WithString("book", mcp.MaxLength(60), mcp.Description(`Bible book: Spanish or English name, abbreviation or slug ("Rut", "Hch", "1-samuel", "Acts", "1 Kings"). Matches the events of the book's own story, marked in_story: true (listed first, in story order, when no year is given), and also the events that only cite a passage of the book.`)),
 		mcp.WithBoolean("anchored_only", mcp.Description(`Leave out events placed only by the order of the story (date kind "narrativa").`), mcp.DefaultBool(false)),
 	}
 	return Tool{
 		Def: newTool("list_events", "List events",
 			`List events in date order, filtered by any mix of year or year range, person, place, kind of event and Bible book. Answers "what happened in 607 a.e.c.", "what happened at Jerusalén", "what did Pablo take part in" and "which events does the book of Rut tell or cite" (in_story marks the ones its own story tells). Years are signed: -607 is 607 a.e.c., 33 is 33 e.c. At least one filter is required.`,
-			append(opts, pagingOptions(20, maxLimit)...)...),
+			append(append(opts, pagingOptions(20, maxLimit)...), outputSchema(pageSchema(itemSchema(schema{
+				"places": arrayOf(refSchema), "people_total": intS, "passages": arrayOf(strS), "kind": strS,
+				"in_story": boolS, "role": strS, "present": boolS, "main": boolS,
+			}), nil)))...),
 		Handle: listEvents,
 	}
 }

@@ -3,6 +3,7 @@ package tools
 import (
 	"encoding/json"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -44,6 +45,11 @@ func TestManifestVersions(t *testing.T) {
 	if pkg.License != "MIT" {
 		t.Fatalf("license %q", pkg.License)
 	}
+	// release.yml copies the release's checksums.txt into the package, and
+	// postinstall.js checks the archive against that copy only.
+	if !slices.Contains(pkg.Files, "checksums.txt") {
+		t.Fatalf("package.json files %v lacks checksums.txt", pkg.Files)
+	}
 	if pkg.Bin["biblical-atlas-mcp"] != "run.js" {
 		t.Fatalf("bin %v: npm strips a leading ./", pkg.Bin)
 	}
@@ -73,7 +79,7 @@ func TestArchiveNames(t *testing.T) {
 		`darwin: "darwin", linux: "linux", win32: "windows"`,
 		`x64: "amd64", arm64: "arm64"`,
 		`platform === "windows" ? "zip" : "tar.gz"`,
-		"/checksums.txt",
+		`path.join(__dirname, "checksums.txt")`,
 	} {
 		if !strings.Contains(js, want) {
 			t.Errorf("postinstall.js lacks %s", want)

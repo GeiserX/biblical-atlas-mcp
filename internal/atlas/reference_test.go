@@ -1,6 +1,7 @@
 package atlas
 
 import (
+	"encoding/json"
 	"errors"
 	"reflect"
 	"strings"
@@ -44,6 +45,14 @@ func TestParseReferences(t *testing.T) {
 		{"2 Timoteo 1:5", 55, 1, 5, 1, 5, "2Ti 1:5"},
 		{"2Ti 1", 55, 1, 0, 1, 18, "2Ti 1"},
 		{"2-timoteo 4:6-8", 55, 4, 6, 4, 8, "2Ti 4:6-8"},
+		// English names and abbreviations.
+		{"Acts 16:1", 44, 16, 1, 16, 1, "Hch 16:1"},
+		{"Acts of the Apostles 16", 44, 16, 0, 16, 40, "Hch 16"},
+		{"2 Timothy 1:5", 55, 1, 5, 1, 5, "2Ti 1:5"},
+		{"II Timothy 4:6-8", 55, 4, 6, 4, 8, "2Ti 4:6-8"},
+		{"Ruth", 8, 1, 0, 4, 22, "Rut"},
+		{"Philemon 5", 57, 1, 5, 1, 5, "Flm 5"},
+		{"Gen 2:7", 1, 2, 7, 2, 7, "Gé 2:7"},
 	}
 	for _, c := range cases {
 		t.Run(c.in, func(t *testing.T) {
@@ -366,5 +375,31 @@ func TestReversedRangeHasNoChapters(t *testing.T) {
 	}
 	if rs[0].Validate() == nil {
 		t.Fatal("reversed range validated")
+	}
+}
+
+// TestEnglishBookNames checks every English form against the Spanish forms
+// of all 66 books as the atlas has them (testdata/books-es.json, copied from
+// the live file): each one must reach its own book, so no English form is
+// shadowed by a Spanish form of another book.
+func TestEnglishBookNames(t *testing.T) {
+	var books []*Book
+	if err := json.Unmarshal(readFixture(t, "books-es.json"), &books); err != nil {
+		t.Fatal(err)
+	}
+	if len(books) != 66 || len(englishBooks) != 66 {
+		t.Fatalf("%d books, %d English entries", len(books), len(englishBooks))
+	}
+	table := newBookTable(books)
+	for num, names := range englishBooks {
+		for _, n := range names {
+			if b := table.Lookup(n); b == nil || b.Num != num {
+				t.Errorf("%q reaches %+v, want book %d", n, b, num)
+			}
+		}
+	}
+	// A near miss in English suggests the Spanish name.
+	if got := table.Suggest("Revelations"); len(got) == 0 || got[0] != "Apocalipsis" {
+		t.Errorf("Suggest(Revelations) = %v", got)
 	}
 }

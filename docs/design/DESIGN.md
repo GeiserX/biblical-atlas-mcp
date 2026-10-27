@@ -6,8 +6,8 @@ The code, tool names, descriptions and docs are English. The values the tools re
 
 ## 1. Decisions in short
 
-- Go, `github.com/mark3labs/mcp-go` v1.1.1, `go 1.27`. One more direct dependency, `golang.org/x/text`, for Unicode normalisation. No godotenv.
-- Nine tools, all read only. No resources and no prompts.
+- Go, `github.com/mark3labs/mcp-go` v1.4.0 (MCP 2026-07-28 and every earlier revision on one binary), `go 1.27`. One more direct dependency, `golang.org/x/text`, for Unicode normalisation. No godotenv.
+- Ten tools, all read only. No resources and no prompts.
 - One data file, held in memory as an immutable snapshot with indexes built once per load. No database.
 - Output keys are English and stable. Output values are the atlas's own.
 - Years use one convention in every input and every output: a signed historical year, negative for a.e.c., no year zero.

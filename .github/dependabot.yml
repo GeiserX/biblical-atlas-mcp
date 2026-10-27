@@ -1,12 +1,12 @@
 version: 2
 updates:
+  # Majors are allowed: a Go major with a new import path never arrives
+  # this way, and mark3labs/mcp-go v0 to v1 (the 2026-07-28 protocol) did,
+  # but sat unproposed while majors were ignored.
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
     cooldown:
       default-days: 3
     groups:

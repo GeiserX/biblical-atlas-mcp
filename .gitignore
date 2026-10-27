@@ -1,5 +1,7 @@
 /dist/
 /bin/
+# release.yml writes it into the npm package before publishing
+/checksums.txt
 /biblical-atlas-mcp
 *.out
 *.test

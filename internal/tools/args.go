@@ -128,7 +128,7 @@ func paging(args map[string]any, defLimit, maxLimit int) (limit, offset int, err
 	if limit, _, err = wholeNumber(args, "limit", 1, maxLimit, defLimit); err != nil {
 		return
 	}
-	offset, _, err = wholeNumber(args, "offset", 0, 1_000_000, 0)
+	offset, _, err = wholeNumber(args, "offset", 0, maxOffset, 0)
 	return
 }
 
@@ -174,7 +174,7 @@ func oneOf(key, v string, allowed []string) error {
 
 // recordID reads an id argument and checks that the record exists.
 func recordID(s *atlas.Snapshot, args map[string]any, key string, t atlas.Type, required bool) (string, bool, error) {
-	v, ok, err := str(args, key, 200)
+	v, ok, err := str(args, key, maxIDLen)
 	if err != nil {
 		return "", false, err
 	}

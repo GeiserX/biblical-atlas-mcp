@@ -10,14 +10,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
       - name: gofmt
@@ -34,25 +39,26 @@ jobs:
         run: node --test postinstall.test.js
       - name: Upload coverage
         if: github.event_name == 'push'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: coverage.out
           fail_ci_if_error: false
 
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - uses: goreleaser/goreleaser-action@v7
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           distribution: goreleaser
-          version: "~> v2"
+          version: v2.19.0
           args: release --snapshot --clean --skip=publish
       - name: Archives match what postinstall.js downloads
         run: |
@@ -66,11 +72,14 @@ jobs:
             test -f "dist/$name" || { echo "missing dist/$name"; exit 1; }
             grep -q "  $name\$" dist/checksums.txt || { echo "$name not in checksums.txt"; exit 1; }
           done
-      - name: npm package holds only the wrapper
+      # release.yml puts the release's checksums.txt into the package; do the
+      # same with the snapshot's so the file list is the one npm publishes.
+      - name: npm package holds the wrapper and the checksums
         run: |
+          cp dist/checksums.txt checksums.txt
           npm pack --dry-run --json --ignore-scripts > pack.json
           got="$(node -e 'const p=require("./pack.json")[0];console.log(p.files.map(f=>f.path).sort().join(" "))')"
-          want="LICENSE README.md package.json postinstall.js run.js"
+          want="LICENSE README.md checksums.txt package.json postinstall.js run.js"
           if [ "$got" != "$want" ]; then
             echo "npm pack lists: $got"
             echo "want:           $want"
@@ -81,13 +90,14 @@ jobs:
 
   image:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build linux/amd64 and linux/arm64 (no push)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64,linux/arm64

@@ -160,7 +160,7 @@ func TestHTTPServesHealthz(t *testing.T) {
 
 func TestBearerAuth(t *testing.T) {
 	store := atlas.NewStore(atlas.Options{File: fixture})
-	h := httpHandler(newServer(store), "s3cret")
+	h := httpHandler(newServer(store), "s3cret", nil)
 	initMsg := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}`
 	for _, c := range []struct {
 		name, auth string
@@ -169,7 +169,11 @@ func TestBearerAuth(t *testing.T) {
 		{"missing", "", http.StatusUnauthorized},
 		{"wrong", "Bearer nope", http.StatusUnauthorized},
 		{"no scheme", "s3cret", http.StatusUnauthorized},
+		{"other scheme", "Basic s3cret", http.StatusUnauthorized},
+		{"empty token", "Bearer ", http.StatusUnauthorized},
+		{"token with a tail", "Bearer s3cretX", http.StatusUnauthorized},
 		{"right", "Bearer s3cret", http.StatusOK},
+		{"scheme in lower case", "bearer s3cret", http.StatusOK},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "http://localhost/mcp", strings.NewReader(initMsg))
@@ -198,7 +202,7 @@ func TestBearerAuth(t *testing.T) {
 
 func TestHTTPWithoutToken(t *testing.T) {
 	store := atlas.NewStore(atlas.Options{File: fixture})
-	h := httpHandler(newServer(store), "")
+	h := httpHandler(newServer(store), "", nil)
 	req := httptest.NewRequest(http.MethodPost, "http://localhost/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
@@ -211,7 +215,7 @@ func TestHTTPWithoutToken(t *testing.T) {
 
 func TestHTTPLimits(t *testing.T) {
 	store := atlas.NewStore(atlas.Options{File: fixture})
-	h := httpHandler(newServer(store), "")
+	h := httpHandler(newServer(store), "", nil)
 	post := func(body string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodPost, "http://localhost/mcp", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -241,4 +245,132 @@ func TestHTTPLimits(t *testing.T) {
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("GET /mcp: %d", rec.Code)
 	}
+}
+
+// TestNonLoopbackNeedsToken: the server refuses to listen beyond this
+// machine with no token, and says why.
+func TestNonLoopbackNeedsToken(t *testing.T) {
+	// A server that wrongly starts stops after the timeout, so the test
+	// fails fast instead of hanging.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var out, errb bytes.Buffer
+	code := run(ctx, nil, strings.NewReader(""), &out, &errb, env(map[string]string{"LISTEN_ADDR": "0.0.0.0:0", "BIBLICAL_ATLAS_DATA_FILE": fixture}))
+	if errs := errb.String(); code != 2 || !strings.Contains(errs, "MCP_AUTH_TOKEN is required") {
+		t.Fatalf("got %d %q", code, errs)
+	}
+}
+
+// TestOrigin: a browser page on another origin cannot call /mcp, a
+// non-browser client and a listed origin can.
+func TestOrigin(t *testing.T) {
+	store := atlas.NewStore(atlas.Options{File: fixture})
+	msg := `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`
+	post := func(h http.Handler, headers map[string]string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "http://localhost:8080/mcp", strings.NewReader(msg))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+	h := httpHandler(newServer(store), "", nil)
+	for _, c := range []struct {
+		name    string
+		headers map[string]string
+		want    int
+	}{
+		{"no browser headers", nil, http.StatusOK},
+		{"cross-site fetch", map[string]string{"Origin": "https://evil.example", "Sec-Fetch-Site": "cross-site"}, http.StatusForbidden},
+		{"old browser, foreign origin", map[string]string{"Origin": "https://evil.example"}, http.StatusForbidden},
+		{"same origin", map[string]string{"Origin": "http://localhost:8080", "Sec-Fetch-Site": "same-origin"}, http.StatusOK},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if rec := post(h, c.headers); rec.Code != c.want {
+				t.Fatalf("got %d, want %d: %s", rec.Code, c.want, rec.Body.String())
+			}
+		})
+	}
+	allowed := httpHandler(newServer(store), "", []string{"https://app.example"})
+	if rec := post(allowed, map[string]string{"Origin": "https://app.example", "Sec-Fetch-Site": "cross-site"}); rec.Code != http.StatusOK {
+		t.Fatalf("listed origin: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := post(allowed, map[string]string{"Origin": "https://evil.example", "Sec-Fetch-Site": "cross-site"}); rec.Code != http.StatusForbidden {
+		t.Fatalf("unlisted origin with a list set: %d", rec.Code)
+	}
+
+	// A browser needs CORS headers as well: a preflight answer (which
+	// carries no token) and Access-Control-Allow-Origin on the reply.
+	withToken := httpHandler(newServer(store), "s3cret", []string{"https://app.example"})
+	preflight := func(origin string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodOptions, "http://localhost:8080/mcp", nil)
+		req.Header.Set("Origin", origin)
+		req.Header.Set("Access-Control-Request-Method", "POST")
+		req.Header.Set("Access-Control-Request-Headers", "authorization, content-type, mcp-method")
+		rec := httptest.NewRecorder()
+		withToken.ServeHTTP(rec, req)
+		return rec
+	}
+	rec := preflight("https://app.example")
+	if rec.Code != http.StatusNoContent || rec.Header().Get("Access-Control-Allow-Origin") != "https://app.example" ||
+		!strings.Contains(rec.Header().Get("Access-Control-Allow-Headers"), "Authorization") || !strings.Contains(rec.Header().Get("Access-Control-Allow-Headers"), "Mcp-Method") {
+		t.Fatalf("listed preflight: %d %v", rec.Code, rec.Header())
+	}
+	if rec := preflight("https://evil.example"); rec.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("unlisted preflight got CORS headers: %v", rec.Header())
+	}
+	rec = post(withToken, map[string]string{"Origin": "https://app.example", "Sec-Fetch-Site": "cross-site", "Authorization": "Bearer s3cret"})
+	if rec.Code != http.StatusOK || rec.Header().Get("Access-Control-Allow-Origin") != "https://app.example" {
+		t.Fatalf("listed origin reply: %d %v", rec.Code, rec.Header())
+	}
+	if rec := post(withToken, map[string]string{"Origin": "https://app.example", "Sec-Fetch-Site": "cross-site"}); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("listed origin without the token: %d", rec.Code)
+	}
+}
+
+// TestInFlightLimit: with every slot busy, the next request gets 503 at
+// once instead of queuing.
+func TestInFlightLimit(t *testing.T) {
+	release := make(chan struct{})
+	started := make(chan struct{})
+	h := limitInFlight(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		<-release
+	}), 1)
+	first := make(chan struct{})
+	go func() {
+		h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/mcp", nil))
+		close(first)
+	}()
+	<-started
+	rec := httptest.NewRecorder()
+	second := make(chan struct{})
+	go func() {
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+		close(second)
+	}()
+	select {
+	case <-second:
+	case <-started:
+		t.Fatal("second request reached the handler instead of being refused")
+	case <-time.After(5 * time.Second):
+		t.Fatal("second request was not refused")
+	}
+	if rec.Code != http.StatusServiceUnavailable || rec.Header().Get("Retry-After") == "" {
+		t.Fatalf("full house: %d", rec.Code)
+	}
+	close(release)
+	<-first
+	// The slot is free again.
+	done := make(chan struct{})
+	go func() {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+		close(done)
+	}()
+	<-started
+	<-done
 }

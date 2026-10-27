@@ -18,6 +18,7 @@ type Rec struct {
 	Pos            int // position in file order within its type
 	Value          any // *Person, *Place, *Event, ...
 
+	normName      string   // Norm(Name), kept for sorting
 	texts         []string // normalised names searched
 	parts         []partText
 	summaryTokens []string
@@ -159,6 +160,7 @@ func (s *Snapshot) add(r *Rec, texts ...string) {
 		return
 	}
 	r.Pos = len(s.order[r.Type])
+	r.normName = Norm(r.Name)
 	for _, t := range texts {
 		if n := Norm(t); n != "" {
 			r.texts = append(r.texts, n)
@@ -719,8 +721,7 @@ func (s *Snapshot) Search(query string, types map[Type]bool) []Hit {
 		if a.Rec.Type != b.Rec.Type {
 			return a.Rec.Type.Rank() < b.Rec.Type.Rank()
 		}
-		na, nb := Norm(a.Rec.Name), Norm(b.Rec.Name)
-		if na != nb {
+		if na, nb := a.Rec.normName, b.Rec.normName; na != nb {
 			return na < nb
 		}
 		return a.Rec.ID < b.Rec.ID
