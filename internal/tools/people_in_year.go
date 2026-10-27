@@ -15,7 +15,13 @@ func peopleInYearTool() Tool {
 	return Tool{
 		Def: newTool("people_in_year", "People alive or active in a year",
 			`Who was alive, ruling or active in a given year, and which reigns, empires and eras covered it. Each person comes with the basis of the claim: "birth_and_death" (dated birth and death events span the year), "dated" (the atlas's date for the person covers the year; that date is the person's known activity, which may be the whole life, a reign or a ministry), "office" (an office held that year) or "event" (an event dated to that year). Only "birth_and_death" bounds the life; the others show the person was alive and active that year. Years are signed: -607 is 607 a.e.c.`,
-			append(opts, pagingOptions(20, maxLimit)...)...),
+			append(append(opts, pagingOptions(20, maxLimit)...), outputSchema(pageSchema(itemSchema(schema{
+				"basis":    schema{"type": "string", "enum": []string{"birth_and_death", "dated", "office", "event"}},
+				"evidence": anyObject,
+			}), schema{
+				"year":    typed("integer", "The year asked, signed."),
+				"periods": arrayOf(itemSchema(nil)),
+			}, "year")))...),
 		Handle: peopleInYear,
 	}
 }

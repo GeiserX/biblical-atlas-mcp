@@ -27,11 +27,12 @@ var (
 func getRecordTool() Tool {
 	return Tool{
 		Def: newTool("get_record", "Get one atlas record",
-			`Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`,
+			`Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search; for several records at once use get_records. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`,
 			mcp.WithString("type", mcp.Required(), mcp.Description("Record type, from search."), mcp.Enum(typeNames(atlas.Types)...)),
-			mcp.WithString("id", mcp.Required(), mcp.Description("Record id, from search. Case is ignored.")),
-			mcp.WithInteger("relations_offset", mcp.Description("Person only: relations to skip. A person answer holds at most 30 relations; use next_relations_offset from the answer to read the rest."), mcp.DefaultNumber(0), mcp.Min(0)),
-			mcp.WithInteger("sources_offset", mcp.Description("Sources to skip. An answer holds at most 50 of the record's sources; use next_sources_offset from the answer to read the rest."), mcp.DefaultNumber(0), mcp.Min(0)),
+			idOption("id", `Record id, from search, for example "pablo". Case is ignored.`, mcp.Required()),
+			offsetOption("relations_offset", "Person only: relations to skip. A person answer holds at most 30 relations; use next_relations_offset from the answer to read the rest."),
+			offsetOption("sources_offset", "Sources to skip. An answer holds at most 50 of the record's sources; use next_sources_offset from the answer to read the rest."),
+			outputSchema(recordSchema),
 		),
 		Handle: getRecord,
 	}
@@ -46,14 +47,14 @@ func getRecord(c *Call) (*obj, error) {
 	if err != nil {
 		return nil, err
 	}
-	relOffset, hasRelOffset, err := wholeNumber(c.Args, "relations_offset", 0, 1_000_000, 0)
+	relOffset, hasRelOffset, err := wholeNumber(c.Args, "relations_offset", 0, maxOffset, 0)
 	if err != nil {
 		return nil, err
 	}
 	if hasRelOffset && t != atlas.TypePerson {
 		return nil, errors.New("relations_offset is only accepted for type person")
 	}
-	srcOffset, _, err := wholeNumber(c.Args, "sources_offset", 0, 1_000_000, 0)
+	srcOffset, _, err := wholeNumber(c.Args, "sources_offset", 0, maxOffset, 0)
 	if err != nil {
 		return nil, err
 	}

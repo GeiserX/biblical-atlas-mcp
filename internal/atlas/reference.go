@@ -149,7 +149,8 @@ func less(c1, v1, c2, v2 int) bool {
 }
 
 // BookTable maps every written form of a book name to the book. It is built
-// from the loaded file; the server hard-codes no book name.
+// from the loaded file, plus the English names in englishBooks, matched by
+// book number.
 type BookTable struct {
 	byKey map[string]*Book
 	books []*Book
@@ -168,12 +169,21 @@ func BookKey(s string) string {
 
 func newBookTable(books []*Book) *BookTable {
 	t := &BookTable{byKey: map[string]*Book{}}
+	put := func(k string, b *Book) {
+		if _, taken := t.byKey[k]; !taken && k != "" {
+			t.byKey[k] = b
+		}
+	}
 	for _, b := range books {
 		t.books = append(t.books, b)
 		for _, k := range b.keys() {
-			if _, taken := t.byKey[k]; !taken && k != "" {
-				t.byKey[k] = b
-			}
+			put(k, b)
+		}
+	}
+	// English after every Spanish form, so Spanish wins a clash.
+	for _, b := range books {
+		for _, k := range englishKeys(b.Num) {
+			put(k, b)
 		}
 	}
 	return t
@@ -208,7 +218,7 @@ func (t *BookTable) Suggest(s string) []string {
 	var cands []cand
 	for _, b := range t.books {
 		best := -1
-		for _, k := range b.keys() {
+		for _, k := range append(b.keys(), englishKeys(b.Num)...) {
 			if k == "" {
 				continue
 			}

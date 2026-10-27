@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -24,7 +25,10 @@ func mcpServer(t *testing.T) *server.MCPServer {
 		if _, err := store.Snapshot(context.Background()); err != nil {
 			panic(err)
 		}
-		testServer = server.NewMCPServer("test", "0", server.WithToolCapabilities(false), server.WithInstructions(Instructions))
+		// The production options, plus output validation: an answer that
+		// breaks its tool's outputSchema becomes a tool error and fails the
+		// case.
+		testServer = server.NewMCPServer("test", "0", append(ServerOptions(), server.WithOutputSchemaValidation())...)
 		Register(testServer, store)
 	})
 	return testServer
@@ -50,7 +54,8 @@ func callOn(t *testing.T, srv *server.MCPServer, name string, args map[string]an
 			Content []struct {
 				Text string `json:"text"`
 			} `json:"content"`
-			IsError bool `json:"isError"`
+			StructuredContent json.RawMessage `json:"structuredContent"`
+			IsError           bool            `json:"isError"`
 		} `json:"result"`
 		Error *struct {
 			Message string `json:"message"`
@@ -65,7 +70,20 @@ func callOn(t *testing.T, srv *server.MCPServer, name string, args map[string]an
 	if len(out.Result.Content) != 1 {
 		t.Fatalf("want one content item, got %s", raw)
 	}
-	return out.Result.Content[0].Text, out.Result.IsError
+	text := out.Result.Content[0].Text
+	// A normal answer carries the same JSON as structuredContent.
+	if !out.Result.IsError && !sameJSON(text, string(out.Result.StructuredContent)) {
+		t.Fatalf("structuredContent %s differs from the text %s", out.Result.StructuredContent, text)
+	}
+	return text, out.Result.IsError
+}
+
+func sameJSON(a, b string) bool {
+	var x, y any
+	if json.Unmarshal([]byte(a), &x) != nil || json.Unmarshal([]byte(b), &y) != nil {
+		return false
+	}
+	return reflect.DeepEqual(x, y)
 }
 
 type toolCase struct {
@@ -75,6 +93,10 @@ type toolCase struct {
 	want    []string // substrings of the compact JSON answer
 	notWant []string
 	wantErr string // substring of the error text; empty for a normal answer
+	// schemaErr is set when the input schema refuses the arguments before
+	// the handler runs: the call through the server must fail with it, and
+	// the handler called directly must still fail with wantErr.
+	schemaErr string
 }
 
 var cases = []toolCase{
@@ -104,12 +126,12 @@ var cases = []toolCase{
 		notWant: []string{`"id":"jerusalen"`, `"part"`}},
 	{name: "search no match", tool: "search", args: map[string]any{"query": "zzzz"},
 		want: []string{`{"total":0,"offset":0,"limit":10,"results":[]`}},
-	{name: "search missing query", tool: "search", args: map[string]any{}, wantErr: "query is required"},
-	{name: "search long query", tool: "search", args: map[string]any{"query": strings.Repeat("a", 101)}, wantErr: "query must be at most 100 characters, got 101"},
-	{name: "search bad type", tool: "search", args: map[string]any{"query": "a", "types": []any{"people"}}, wantErr: `types must contain only person, place`},
-	{name: "search limit too high", tool: "search", args: map[string]any{"query": "a", "limit": 51.0}, wantErr: "limit must be a whole number from 1 to 50, got 51"},
-	{name: "search fractional limit", tool: "search", args: map[string]any{"query": "a", "limit": 2.5}, wantErr: "limit must be a whole number from 1 to 50, got 2.5"},
-	{name: "search negative offset", tool: "search", args: map[string]any{"query": "a", "offset": -1.0}, wantErr: "offset must be a whole number"},
+	{name: "search missing query", tool: "search", args: map[string]any{}, wantErr: "query is required", schemaErr: "missing property 'query'"},
+	{name: "search long query", tool: "search", args: map[string]any{"query": strings.Repeat("a", 101)}, wantErr: "query must be at most 100 characters, got 101", schemaErr: "/query: maxLength: got 101, want 100"},
+	{name: "search bad type", tool: "search", args: map[string]any{"query": "a", "types": []any{"people"}}, wantErr: `types must contain only person, place`, schemaErr: "/types/0: value must be one of"},
+	{name: "search limit too high", tool: "search", args: map[string]any{"query": "a", "limit": 51.0}, wantErr: "limit must be a whole number from 1 to 50, got 51", schemaErr: "/limit: maximum: got 51, want 50"},
+	{name: "search fractional limit", tool: "search", args: map[string]any{"query": "a", "limit": 2.5}, wantErr: "limit must be a whole number from 1 to 50, got 2.5", schemaErr: "/limit: got number, want integer"},
+	{name: "search negative offset", tool: "search", args: map[string]any{"query": "a", "offset": -1.0}, wantErr: "offset must be a whole number", schemaErr: "/offset: minimum: got -1, want 0"},
 
 	// get_record
 	{name: "person family both ways", tool: "get_record", args: map[string]any{"type": "person", "id": "eunice"},
@@ -121,7 +143,7 @@ var cases = []toolCase{
 	{name: "person relations order", tool: "get_record", args: map[string]any{"type": "person", "id": "timoteo"},
 		want: []string{`"relations":[{"other":{"type":"person","id":"eunice"`, `"type":"kin","word":"mother"`, `"journeys":[{"type":"journey","id":"primer-viaje"`, `"as":"companion"`, `"events_total":1`, `"as":"recipient"`}},
 	{name: "type names are exact", tool: "get_record", args: map[string]any{"type": "PERSON", "id": "PABLO"},
-		wantErr: "type must be one of"},
+		wantErr: "type must be one of", schemaErr: "/type: value must be one of"},
 	{name: "person case-insensitive id", tool: "get_record", args: map[string]any{"type": "person", "id": "PABLO"},
 		want: []string{`"id":"pablo"`, `"date":{"text":"c. 33-65 e.c.","from":33,"to":65,"approx":true,"kind":"anclada","precision":"rango"}`,
 			`"other":{"type":"place","id":"tarso"`, `"phrase":"nació aquí"`, `"status":"pendiente"`, `"inferred":true`,
@@ -193,7 +215,7 @@ var cases = []toolCase{
 		wantErr: `no person with id "pablo-apostol". Did you mean: pablo (Pablo)?`},
 	{name: "unknown id without suggestion", tool: "get_record", args: map[string]any{"type": "letter", "id": "qqqqqqqqqq"},
 		wantErr: `no letter with id "qqqqqqqqqq". Find ids with search`},
-	{name: "missing id", tool: "get_record", args: map[string]any{"type": "person"}, wantErr: "id is required"},
+	{name: "missing id", tool: "get_record", args: map[string]any{"type": "person"}, wantErr: "id is required", schemaErr: "missing property 'id'"},
 
 	// list_records
 	{name: "people by office", tool: "list_records", args: map[string]any{"type": "person", "kind": "high_priest"},
@@ -210,7 +232,7 @@ var cases = []toolCase{
 		want: []string{`"total":2,"offset":0,"limit":2,"results"`}, notWant: []string{"next_offset"}},
 	{name: "page before the last", tool: "list_records", args: map[string]any{"type": "period", "limit": 1.0},
 		want: []string{`"total":2,"offset":0,"limit":1,"next_offset":1`}},
-	{name: "limit above 50", tool: "list_records", args: map[string]any{"type": "period", "limit": 51.0}, wantErr: "limit must be a whole number from 1 to 50, got 51"},
+	{name: "limit above 50", tool: "list_records", args: map[string]any{"type": "period", "limit": 51.0}, wantErr: "limit must be a whole number from 1 to 50, got 51", schemaErr: "/limit: maximum: got 51, want 50"},
 	{name: "books", tool: "list_records", args: map[string]any{"type": "book"},
 		want: []string{`"total":5`, `"number":1,"abbreviation":"Gé","chapters":50,"fully_read":true`}},
 	{name: "months", tool: "list_records", args: map[string]any{"type": "month"}, want: []string{`"total":2`}},
@@ -219,7 +241,7 @@ var cases = []toolCase{
 	{name: "journeys", tool: "list_records", args: map[string]any{"type": "journey"}, want: []string{`"total":1`}},
 	{name: "finds", tool: "list_records", args: map[string]any{"type": "find"}, want: []string{`"total":1`}},
 	{name: "tours", tool: "list_records", args: map[string]any{"type": "tour"}, want: []string{`"total":1`}},
-	{name: "events are not listed here", tool: "list_records", args: map[string]any{"type": "event"}, wantErr: "type must be one of person, place, period"},
+	{name: "events are not listed here", tool: "list_records", args: map[string]any{"type": "event"}, wantErr: "type must be one of person, place, period", schemaErr: "/type: value must be one of 'person', 'place', 'period'"},
 	{name: "person needs kind", tool: "list_records", args: map[string]any{"type": "person"}, wantErr: "kind is required for type person; values present: high_priest"},
 	{name: "unknown kind lists values", tool: "list_records", args: map[string]any{"type": "place", "kind": "volcan"}, wantErr: `kind "volcan" is not in the atlas; values present: ciudad, lago, region`},
 	{name: "kind rejected for letters", tool: "list_records", args: map[string]any{"type": "letter", "kind": "x"}, wantErr: "kind is only accepted for person, place and period"},
@@ -267,9 +289,9 @@ var cases = []toolCase{
 		want: []string{`"id":"adan"`, `"basis":"birth_and_death"`}, notWant: []string{`"basis":"dated"`}},
 	{name: "nobody", tool: "people_in_year", args: map[string]any{"year": 300.0},
 		want: []string{`"total":0,"offset":0,"limit":20,"results":[]`}},
-	{name: "missing year", tool: "people_in_year", args: map[string]any{}, wantErr: "year is required"},
-	{name: "year out of range", tool: "people_in_year", args: map[string]any{"year": -5000.0}, wantErr: "year must be a whole number from -4100 to 500 and not 0"},
-	{name: "fractional year", tool: "people_in_year", args: map[string]any{"year": 33.5}, wantErr: "got 33.5"},
+	{name: "missing year", tool: "people_in_year", args: map[string]any{}, wantErr: "year is required", schemaErr: "missing property 'year'"},
+	{name: "year out of range", tool: "people_in_year", args: map[string]any{"year": -5000.0}, wantErr: "year must be a whole number from -4100 to 500 and not 0", schemaErr: "/year: minimum"},
+	{name: "fractional year", tool: "people_in_year", args: map[string]any{"year": 33.5}, wantErr: "got 33.5", schemaErr: "/year: got number, want integer"},
 
 	// lookup_passage
 	{name: "verse", tool: "lookup_passage", args: map[string]any{"reference": "Hch 16:1"},
@@ -311,7 +333,7 @@ var cases = []toolCase{
 		want: []string{`"connected":false`}},
 	{name: "same person", tool: "find_connection", args: map[string]any{"from": "pablo", "to": "pablo"}, wantErr: "two different people"},
 	{name: "unknown person", tool: "find_connection", args: map[string]any{"from": "pablo", "to": "timotteo"}, wantErr: `Did you mean: timoteo (Timoteo)`},
-	{name: "max steps too high", tool: "find_connection", args: map[string]any{"from": "pablo", "to": "timoteo", "max_steps": 13.0}, wantErr: "max_steps must be a whole number from 1 to 12, got 13"},
+	{name: "max steps too high", tool: "find_connection", args: map[string]any{"from": "pablo", "to": "timoteo", "max_steps": 13.0}, wantErr: "max_steps must be a whole number from 1 to 12, got 13", schemaErr: "/max_steps: maximum: got 13, want 12"},
 
 	// places_near
 	{name: "near a place", tool: "places_near", args: map[string]any{"place": "jerusalen"},
@@ -323,20 +345,91 @@ var cases = []toolCase{
 	{name: "place and point", tool: "places_near", args: map[string]any{"place": "jerusalen", "lat": 1.0, "lon": 1.0}, wantErr: "not both"},
 	{name: "lat without lon", tool: "places_near", args: map[string]any{"lat": 1.0}, wantErr: "lat and lon go together"},
 	{name: "no origin", tool: "places_near", args: map[string]any{}, wantErr: "give place, or lat and lon"},
-	{name: "zero radius", tool: "places_near", args: map[string]any{"place": "jerusalen", "radius_km": 0.0}, wantErr: "radius_km must be a number above 0 and at most 2000, got 0"},
-	{name: "huge radius", tool: "places_near", args: map[string]any{"place": "jerusalen", "radius_km": 3000.0}, wantErr: "got 3000"},
-	{name: "bad latitude", tool: "places_near", args: map[string]any{"lat": 91.0, "lon": 0.0}, wantErr: "lat must be a number from -90 to 90, got 91"},
+	{name: "zero radius", tool: "places_near", args: map[string]any{"place": "jerusalen", "radius_km": 0.0}, wantErr: "radius_km must be a number above 0 and at most 2000, got 0", schemaErr: "/radius_km: exclusiveMinimum"},
+	{name: "huge radius", tool: "places_near", args: map[string]any{"place": "jerusalen", "radius_km": 3000.0}, wantErr: "got 3000", schemaErr: "/radius_km: maximum"},
+	{name: "bad latitude", tool: "places_near", args: map[string]any{"lat": 91.0, "lon": 0.0}, wantErr: "lat must be a number from -90 to 90, got 91", schemaErr: "/lat: maximum: got 91, want 90"},
+
+	// get_records
+	{name: "batch with a bad id", tool: "get_records", args: map[string]any{"records": []any{
+		map[string]any{"type": "person", "id": "Pablo"}, map[string]any{"type": "place", "id": "jerusalen"}, map[string]any{"type": "person", "id": "pablo-apostol"},
+	}},
+		want: []string{`{"records":[{"type":"person","id":"pablo"`, `{"type":"place","id":"jerusalen","name":"Jerusalén"`,
+			`"errors":[{"type":"person","id":"pablo-apostol","error":"no person with id \"pablo-apostol\". Did you mean: pablo (Pablo)?"}]`},
+		notWant: []string{`"not_returned"`}},
+	{name: "batch over 20", tool: "get_records", args: map[string]any{"records": twentyOne()}, wantErr: "input schema validation failed: /records"},
+	{name: "batch item without id", tool: "get_records", args: map[string]any{"records": []any{map[string]any{"type": "person"}}}, wantErr: "input schema validation failed: /records/0"},
+
+	// English book names and reference forms
+	{name: "search an English book name", tool: "search", args: map[string]any{"query": "Acts"},
+		want: []string{`"results":[{"type":"book","id":"hechos","name":"Hechos"`, `"score":100,"matched":"book"`}},
+	{name: "search an English reference", tool: "search", args: map[string]any{"query": "Acts 16:1"},
+		want: []string{`"id":"hechos"`, `"matched":"book"`, `"passage":"Hch 16:1"`}},
+	{name: "search a Spanish reference", tool: "search", args: map[string]any{"query": "2 Timoteo 1:5", "types": []any{"book"}},
+		want: []string{`"total":1`, `"id":"2-timoteo"`, `"passage":"2Ti 1:5"`}},
+	{name: "a short abbreviation stays a name search", tool: "search", args: map[string]any{"query": "Ru"},
+		notWant: []string{`"matched":"book"`, `"passage"`}},
+	{name: "English reference", tool: "lookup_passage", args: map[string]any{"reference": "Acts 16:1"},
+		want: []string{`"total":1`, `"id":"timoteo-se-une-a-pablo"`, `"text":"Hch 16:1"`}},
+	{name: "English book filter", tool: "list_events", args: map[string]any{"book": "Acts"},
+		want: []string{`"total":5`, `"results":[{"type":"event","id":"primer-viaje-misional"`}},
+
+	// did_you_mean
+	{name: "a typo suggests close names", tool: "search", args: map[string]any{"query": "Timotteo"},
+		want: []string{`"total":0`, `"did_you_mean":[{"type":"person","id":"timoteo"`}},
+
+	// input schema validation
+	{name: "unknown argument", tool: "search", args: map[string]any{"query": "Pablo", "limt": 5.0}, wantErr: "input schema validation failed"},
+	{name: "argument to a tool with none", tool: "dataset_info", args: map[string]any{"verbose": true}, wantErr: "input schema validation failed"},
 
 	// dataset_info
 	{name: "dataset info", tool: "dataset_info", args: map[string]any{},
-		want:    []string{`"format":"biblical-atlas/v0","generated":"2026-09-30"`, `"stale":false`, `"people":8`, `"books_fully_read":["genesis","rut"]`, `"books_not_yet_read":["hechos","2-timoteo","filemon"]`, `"site":"https://biblical-atlas.geiser.cloud/"`, `"chapter_sources":10`},
+		want: []string{`"format":"biblical-atlas/v0","generated":"2026-09-30"`, `"stale":false`, `"people":8`, `"books_fully_read":["genesis","rut"]`, `"books_not_yet_read":["hechos","2-timoteo","filemon"]`, `"site":"https://biblical-atlas.geiser.cloud/"`, `"chapter_sources":10`,
+			`"filters":{"place_kinds":["ciudad","lago","region"],"offices":["high_priest"],`, `"event_roles":["born","died","spoke"]`, `"source":"local file data.json"`},
 		notWant: []string{`"refresh_error"`, `"warnings"`}},
+}
+
+// callHandler runs a tool's handler directly, without the server's schema
+// check in front.
+func callHandler(t *testing.T, name string, args map[string]any) (string, bool) {
+	t.Helper()
+	store := atlas.NewStore(atlas.Options{File: "../atlas/testdata/data.json"})
+	snap, err := store.Snapshot(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range All() {
+		if tool.Def.Name == name {
+			out, err := tool.Handle(&Call{Snap: snap, Store: store, Args: args})
+			if err != nil {
+				return err.Error(), true
+			}
+			b, _ := marshal(out)
+			return string(b), false
+		}
+	}
+	t.Fatalf("no tool %s", name)
+	return "", false
+}
+
+func twentyOne() []any {
+	out := make([]any, 21)
+	for i := range out {
+		out[i] = map[string]any{"type": "person", "id": "pablo"}
+	}
+	return out
 }
 
 func TestTools(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.tool+"/"+c.name, func(t *testing.T) {
 			text, isErr := call(t, c.tool, c.args)
+			if c.schemaErr != "" {
+				if !isErr || !strings.Contains(text, c.schemaErr) {
+					t.Fatalf("want a schema error containing %q, got isError=%v %s", c.schemaErr, isErr, text)
+				}
+				// The handler still checks on its own.
+				text, isErr = callHandler(t, c.tool, c.args)
+			}
 			if c.wantErr != "" {
 				if !isErr || !strings.Contains(text, c.wantErr) {
 					t.Fatalf("want error containing %q, got isError=%v %s", c.wantErr, isErr, text)
@@ -367,7 +460,7 @@ func TestTools(t *testing.T) {
 }
 
 // TestEveryToolHasACase fails for a registered tool with no successful case
-// or no error case (dataset_info takes no input, so it has no error case).
+// or no error case.
 func TestEveryToolHasACase(t *testing.T) {
 	ok, bad := map[string]bool{}, map[string]bool{}
 	for _, c := range cases {
@@ -382,12 +475,12 @@ func TestEveryToolHasACase(t *testing.T) {
 		if !ok[name] {
 			t.Errorf("tool %s has no successful case", name)
 		}
-		if !bad[name] && name != "dataset_info" {
+		if !bad[name] {
 			t.Errorf("tool %s has no error case", name)
 		}
 	}
-	if len(All()) != 9 {
-		t.Errorf("want 9 tools, got %d", len(All()))
+	if len(All()) != 10 {
+		t.Errorf("want 10 tools, got %d", len(All()))
 	}
 }
 
@@ -527,5 +620,69 @@ func TestSourcesPage(t *testing.T) {
 	}
 	if strings.Contains(second, "next_sources_offset") {
 		t.Fatalf("second page is the last: %s", second)
+	}
+}
+
+// TestBatchBudget lowers the size budget so get_records stops after the
+// first record and hands the rest back, in order.
+func TestBatchBudget(t *testing.T) {
+	old := batchBudget
+	batchBudget = 1
+	t.Cleanup(func() { batchBudget = old })
+	text, isErr := call(t, "get_records", map[string]any{"records": []any{
+		map[string]any{"type": "person", "id": "pablo"}, map[string]any{"type": "place", "id": "jerusalen"}, map[string]any{"type": "person", "id": "nobody"},
+	}})
+	if isErr || !strings.Contains(text, `{"records":[{"type":"person","id":"pablo"`) ||
+		!strings.Contains(text, `"not_returned":[{"type":"place","id":"jerusalen"},{"type":"person","id":"nobody"}]`) || strings.Contains(text, `"errors"`) {
+		t.Fatalf("got %s", text)
+	}
+}
+
+// TestToolMetadata checks what every tool declares beyond its inputs: an
+// output schema, a strict input schema, and an outputSchema that the server
+// really enforces.
+func TestToolMetadata(t *testing.T) {
+	for _, tool := range All() {
+		if len(tool.Def.RawOutputSchema) == 0 {
+			t.Errorf("tool %s has no outputSchema", tool.Def.Name)
+		}
+		if tool.Def.Title == "" {
+			t.Errorf("tool %s has no title", tool.Def.Name)
+		}
+	}
+	// tools/list shows additionalProperties false on every input schema.
+	resp := mcpServer(t).HandleMessage(context.Background(), []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}`))
+	raw, _ := json.Marshal(resp)
+	var list struct {
+		Result struct {
+			Tools []struct {
+				Name         string         `json:"name"`
+				InputSchema  map[string]any `json:"inputSchema"`
+				OutputSchema map[string]any `json:"outputSchema"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(raw, &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Result.Tools) != len(All()) {
+		t.Fatalf("tools/list has %d tools: %s", len(list.Result.Tools), raw)
+	}
+	for _, tl := range list.Result.Tools {
+		if tl.InputSchema["additionalProperties"] != false {
+			t.Errorf("%s input schema allows unknown arguments: %v", tl.Name, tl.InputSchema)
+		}
+		if tl.OutputSchema["type"] != "object" {
+			t.Errorf("%s output schema: %v", tl.Name, tl.OutputSchema)
+		}
+	}
+	// Positive control: a schema the answer cannot meet turns it into an error.
+	srv := server.NewMCPServer("test", "0", append(ServerOptions(), server.WithOutputSchemaValidation())...)
+	store := atlas.NewStore(atlas.Options{File: "../atlas/testdata/data.json"})
+	bad := datasetInfoTool()
+	bad.Def.RawOutputSchema = json.RawMessage(`{"type":"object","required":["no_such_key"]}`)
+	srv.AddTool(bad.Def, handler(bad, store))
+	if text, isErr := callOn(t, srv, "dataset_info", map[string]any{}); !isErr || !strings.Contains(text, "no_such_key") {
+		t.Fatalf("an answer breaking its schema passed: %v %s", isErr, text)
 	}
 }

@@ -15,12 +15,27 @@ const (
 
 func lookupPassageTool() Tool {
 	opts := []mcp.ToolOption{
-		mcp.WithString("reference", mcp.Required(), mcp.Description(`One Spanish Bible reference: "Hch 16:1", "Hechos 16", "2 Reyes 3", "Gé 2:7, 8", "Hch 13:1–14:28" or a book alone, "Rut".`), mcp.MinLength(1), mcp.MaxLength(80)),
+		mcp.WithString("reference", mcp.Required(), mcp.Description(`One Bible reference, Spanish or English book names: "Hch 16:1", "Hechos 16", "Acts 16:1", "2 Reyes 3", "2 Kings 3", "Gé 2:7, 8", "Hch 13:1–14:28" or a book alone, "Rut".`), mcp.MinLength(1), mcp.MaxLength(80)),
 	}
 	return Tool{
 		Def: newTool("lookup_passage", "Look up a Bible passage",
-			`What the atlas has on a Bible passage: the events whose passages overlap it, the people and places in those events, and the letters, journey stops and other records that cite the chapter. Takes a Spanish reference such as "Hch 16:1", "Hechos 16", "2 Reyes 3", "Gé 2:7, 8", "Hch 13:1–14:28" or just a book, "Rut". Returns the link to read the passage on jw.org, at its verse.`,
-			append(opts, pagingOptions(20, maxLimit)...)...),
+			`What the atlas has on a Bible passage: the events whose passages overlap it, the people and places in those events, and the letters, journey stops and other records that cite the chapter. Takes one passage with no gaps, with a Spanish or English book name: "Hch 16:1", "Acts 16:1", "Hechos 16", "2 Reyes 3", "Gé 2:7, 8", "Hch 13:1–14:28" or just a book, "Rut". For two passages, call it twice. Returns the link to read the passage on jw.org, at its verse.`,
+			append(append(opts, pagingOptions(20, maxLimit)...), outputSchema(pageSchema(itemSchema(schema{
+				"places": arrayOf(refSchema), "passages": arrayOf(strS),
+			}), schema{
+				"passage": object(schema{
+					"book": refSchema, "chapter": intS, "verse": intS, "to_chapter": intS, "to_verse": intS,
+					"text": strS, "url": strS, "read_url": typed("string", "The passage on the jw.org study Bible."),
+				}, "book", "text"),
+				"fully_read":     typed("boolean", "Whether the atlas has read the book verse by verse."),
+				"notice":         strS,
+				"people":         arrayOf(refSchema),
+				"people_total":   intS,
+				"places":         arrayOf(refSchema),
+				"places_total":   intS,
+				"cited_by":       arrayOf(refSchema),
+				"cited_by_total": intS,
+			}, "passage", "fully_read")))...),
 		Handle: lookupPassage,
 	}
 }

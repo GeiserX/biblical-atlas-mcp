@@ -15,16 +15,23 @@ const earthRadiusKm = 6371.0
 
 func placesNearTool() Tool {
 	opts := []mcp.ToolOption{
-		mcp.WithString("place", mcp.Description("Place id from search. Give this or lat and lon, not both.")),
-		mcp.WithNumber("lat", mcp.Description("Latitude of the origin, -90 to 90."), mcp.Min(-90), mcp.Max(90)),
-		mcp.WithNumber("lon", mcp.Description("Longitude of the origin, -180 to 180."), mcp.Min(-180), mcp.Max(180)),
-		mcp.WithNumber("radius_km", mcp.Description("Search radius in km, above 0 and at most 2000."), mcp.DefaultNumber(50), mcp.Max(2000)),
-		mcp.WithString("kind", mcp.Description(`Only places of this kind, for example "ciudad", "monte", "rio".`)),
+		idOption("place", `Place id from search, for example "jerusalen". Give this or lat and lon, not both.`),
+		mcp.WithNumber("lat", mcp.Description("Latitude of the origin in degrees, -90 to 90, for example 31.7784."), mcp.Min(-90), mcp.Max(90)),
+		mcp.WithNumber("lon", mcp.Description("Longitude of the origin in degrees, -180 to 180, for example 35.2066."), mcp.Min(-180), mcp.Max(180)),
+		mcp.WithNumber("radius_km", mcp.Description("Search radius in km, above 0 and at most 2000."), mcp.DefaultNumber(50), exclusiveMin(0), mcp.Max(2000)),
+		mcp.WithString("kind", mcp.Description(`Only places of this kind, for example "ciudad", "monte", "rio". dataset_info lists the kinds present.`), mcp.MaxLength(60)),
 	}
 	return Tool{
 		Def: newTool("places_near", "Places near a place or point",
-			`Places in the atlas within a distance of a place or a coordinate, nearest first. Use for "what is near Capernaum" or "which cities lie within 30 km of Jerusalén". Only places with a known point are returned; the count of places without one is reported.`,
-			append(opts, pagingOptions(20, maxLimit)...)...),
+			`Places in the atlas within a distance of a place or a coordinate, nearest first. Use for "what is near Capernaúm" or "which cities lie within 30 km of Jerusalén". Only places with a known point are returned; the count of places without one is reported.`,
+			append(append(opts, pagingOptions(20, maxLimit)...), outputSchema(pageSchema(itemSchema(schema{
+				"kind": strS, "lat": numS, "lon": numS, "precision": strS,
+				"distance_km": typed("number", "Distance from the origin in km, to 0.1 km."),
+			}), schema{
+				"origin":              object(schema{"lat": numS, "lon": numS, "place": refSchema}, "lat", "lon"),
+				"radius_km":           numS,
+				"without_coordinates": typed("integer", "Atlas places with no known point, left out."),
+			}, "origin", "radius_km", "without_coordinates")))...),
 		Handle: placesNear,
 	}
 }
