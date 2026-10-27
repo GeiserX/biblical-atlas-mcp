@@ -347,7 +347,18 @@ func TestInFlightLimit(t *testing.T) {
 	}()
 	<-started
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+	second := make(chan struct{})
+	go func() {
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+		close(second)
+	}()
+	select {
+	case <-second:
+	case <-started:
+		t.Fatal("second request reached the handler instead of being refused")
+	case <-time.After(5 * time.Second):
+		t.Fatal("second request was not refused")
+	}
 	if rec.Code != http.StatusServiceUnavailable || rec.Header().Get("Retry-After") == "" {
 		t.Fatalf("full house: %d", rec.Code)
 	}

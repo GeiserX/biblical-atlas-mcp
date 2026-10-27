@@ -132,6 +132,9 @@ var cases = []toolCase{
 	{name: "search limit too high", tool: "search", args: map[string]any{"query": "a", "limit": 51.0}, wantErr: "limit must be a whole number from 1 to 50, got 51", schemaErr: "/limit: maximum: got 51, want 50"},
 	{name: "search fractional limit", tool: "search", args: map[string]any{"query": "a", "limit": 2.5}, wantErr: "limit must be a whole number from 1 to 50, got 2.5", schemaErr: "/limit: got number, want integer"},
 	{name: "search negative offset", tool: "search", args: map[string]any{"query": "a", "offset": -1.0}, wantErr: "offset must be a whole number", schemaErr: "/offset: minimum: got -1, want 0"},
+	// The schema refuses a null where the handler alone reads it as absent.
+	{name: "search null offset", tool: "search", args: map[string]any{"query": "a", "offset": nil},
+		want: []string{`"offset":0`}, schemaErr: "/offset: got null, want integer"},
 
 	// get_record
 	{name: "person family both ways", tool: "get_record", args: map[string]any{"type": "person", "id": "eunice"},
@@ -502,7 +505,7 @@ func TestLinks(t *testing.T) {
 	allowed := []string{SiteBase, "https://www.jw.org/", "https://wol.jw.org/", "https://www.openbible.info/"}
 	seen := 0
 	for _, c := range cases {
-		if c.wantErr != "" {
+		if c.wantErr != "" || c.schemaErr != "" {
 			continue
 		}
 		text, _ := call(t, c.tool, c.args)

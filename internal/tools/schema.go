@@ -9,8 +9,9 @@ import (
 // Output schemas. They describe the keys every answer of a tool can carry
 // and the types of the ones a client is likely to read; keys not listed may
 // appear (additional properties stay allowed) because a record carries
-// whatever the atlas has for it. TestOutputSchemas validates every case of
-// the tool table against them.
+// whatever the atlas has for it. TestTools checks every case of the tool
+// table against them (the test server adds output validation), and
+// TestToolMetadata holds the positive control.
 
 type schema = map[string]any
 

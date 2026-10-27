@@ -8,7 +8,7 @@ All notable changes to this project are listed here, newest first. The format fo
 
 - **Breaking for HTTP deployments:** the server refuses to start in HTTP mode on a non-loopback address (`0.0.0.0`, a LAN address, the container's default) without `MCP_AUTH_TOKEN`. Add `-e MCP_AUTH_TOKEN=...` to `docker run`. On `127.0.0.1` the token stays optional.
 - Speaks MCP 2026-07-28 (mcp-go v1.4.0) alongside every earlier revision down to 2024-11-05, on stdio and HTTP: `server/discover`, the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers, and cache hints on `tools/list` (one hour, public). Older clients still use `initialize`.
-- Every tool declares an output schema and returns `structuredContent` next to the same JSON as text. Inputs are checked against a strict schema before the tool runs: an unknown parameter or an out-of-range value is a tool error naming the field.
+- Every tool declares an output schema and returns `structuredContent` next to the same JSON as text. Inputs are checked against a strict schema before the tool runs: an unknown parameter or an out-of-range value is a tool error naming the field. A `null` value for an optional parameter is refused the same way; leave the parameter out instead.
 - `dataset_info` names the data source without credentials, query or fragment, and a local file by its name only. Load and refresh errors are scrubbed the same way.
 
 ### Added
