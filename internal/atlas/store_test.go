@@ -471,6 +471,21 @@ func TestSourceRedacted(t *testing.T) {
 		t.Fatalf("transport error leaks the URL: %v", err)
 	}
 
+	// A redirect to a URL with its own credentials: the error names the
+	// target, which must come out redacted too.
+	redir := httptest.NewServer(http.RedirectHandler("http://127.0.0.1:1/data.json?sig=r3dirsecret", http.StatusFound))
+	t.Cleanup(redir.Close)
+	s, _ = newTestStore(t, redir.URL, "")
+	_, err = s.Snapshot(ctx)
+	if err == nil || !strings.Contains(err.Error(), "127.0.0.1:1/data.json") {
+		t.Fatalf("want an error naming the redirect target, got %v", err)
+	}
+	for _, text := range []string{err.Error(), s.Status().RefreshError} {
+		if strings.Contains(text, "r3dirsecret") {
+			t.Errorf("redirect error leaks the target's query: %q", text)
+		}
+	}
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "atlas.json")
 	f := NewStore(Options{File: path})

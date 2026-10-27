@@ -13,12 +13,12 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ### Added
 
-- `get_records`: up to 20 records of any type in one call, with per-record errors and the records left out once the answer reaches about 160 KB.
+- `get_records`: up to 20 records of any type in one call, with per-record errors and the records left out once the answer reaches about 56 KB.
 - English Bible book names and abbreviations (`Acts`, `2 Kings`, `Rev`) in `lookup_passage`, `list_events` and `search`. Answers still name the book in Spanish.
 - `search` puts a named Bible book first (`matched: book`), adds `passage` when the query reads as a reference, and returns `did_you_mean` when nothing matches.
 - `dataset_info` lists `filters`: the place kinds, offices, period kinds, event kinds and roles the loaded atlas uses.
 - Server title, description, website and icons in `initialize`, `server/discover` and `server.json`.
-- `MCP_ALLOWED_ORIGINS` lets named browser origins call `/mcp`; other cross-origin browser requests get 403.
+- `MCP_ALLOWED_ORIGINS` lets named browser origins call `/mcp`, with the CORS answers a browser needs; other cross-origin browser requests get 403.
 
 ### Security
 

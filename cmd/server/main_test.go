@@ -301,6 +301,34 @@ func TestOrigin(t *testing.T) {
 	if rec := post(allowed, map[string]string{"Origin": "https://evil.example", "Sec-Fetch-Site": "cross-site"}); rec.Code != http.StatusForbidden {
 		t.Fatalf("unlisted origin with a list set: %d", rec.Code)
 	}
+
+	// A browser needs CORS headers as well: a preflight answer (which
+	// carries no token) and Access-Control-Allow-Origin on the reply.
+	withToken := httpHandler(newServer(store), "s3cret", []string{"https://app.example"})
+	preflight := func(origin string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodOptions, "http://localhost:8080/mcp", nil)
+		req.Header.Set("Origin", origin)
+		req.Header.Set("Access-Control-Request-Method", "POST")
+		req.Header.Set("Access-Control-Request-Headers", "authorization, content-type, mcp-method")
+		rec := httptest.NewRecorder()
+		withToken.ServeHTTP(rec, req)
+		return rec
+	}
+	rec := preflight("https://app.example")
+	if rec.Code != http.StatusNoContent || rec.Header().Get("Access-Control-Allow-Origin") != "https://app.example" ||
+		!strings.Contains(rec.Header().Get("Access-Control-Allow-Headers"), "Authorization") || !strings.Contains(rec.Header().Get("Access-Control-Allow-Headers"), "Mcp-Method") {
+		t.Fatalf("listed preflight: %d %v", rec.Code, rec.Header())
+	}
+	if rec := preflight("https://evil.example"); rec.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("unlisted preflight got CORS headers: %v", rec.Header())
+	}
+	rec = post(withToken, map[string]string{"Origin": "https://app.example", "Sec-Fetch-Site": "cross-site", "Authorization": "Bearer s3cret"})
+	if rec.Code != http.StatusOK || rec.Header().Get("Access-Control-Allow-Origin") != "https://app.example" {
+		t.Fatalf("listed origin reply: %d %v", rec.Code, rec.Header())
+	}
+	if rec := post(withToken, map[string]string{"Origin": "https://app.example", "Sec-Fetch-Site": "cross-site"}); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("listed origin without the token: %d", rec.Code)
+	}
 }
 
 // TestInFlightLimit: with every slot busy, the next request gets 503 at

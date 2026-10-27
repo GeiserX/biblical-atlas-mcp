@@ -328,6 +328,12 @@ func (s *Store) fetch() {
 	}
 	resp, err := s.client.Do(req)
 	if err != nil {
+		// After a redirect the error names the target URL, which scrubURL
+		// does not know and which may carry its own credentials.
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			ue.URL = RedactURL(ue.URL)
+		}
 		s.fail(err)
 		return
 	}

@@ -11,9 +11,10 @@ import (
 const maxBatch = 20
 
 // batchBudget caps the encoded size of the records one get_records answer
-// carries. The answer goes out twice (text and structured content), so this
-// stays well under MaxResultBytes. The first record always comes back.
-var batchBudget = 160 << 10
+// carries. It matches the 60 KB answer budget of live_test.go, which keeps an
+// answer under Claude Code's default 25,000-token limit. The first record
+// always comes back, so one record answers as get_record would.
+var batchBudget = 56 << 10
 
 func getRecordsTool() Tool {
 	return Tool{

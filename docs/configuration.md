@@ -14,7 +14,7 @@ All settings are environment variables and all of them are optional. A value tha
 | `TRANSPORT` | unset | `stdio` for stdio. Unset or `http` for streamable HTTP. |
 | `LISTEN_ADDR` | `127.0.0.1:8080` | HTTP listen address. The container image sets `0.0.0.0:8080`. |
 | `MCP_AUTH_TOKEN` | unset | HTTP requests to `/mcp` need `Authorization: Bearer <token>`. Required when `LISTEN_ADDR` is not a loopback address: the server refuses to start without it. No white space. |
-| `MCP_ALLOWED_ORIGINS` | unset | Comma-separated browser origins (`https://app.example.org`) that may call `/mcp` from a web page. Unset, every cross-origin browser request gets 403. |
+| `MCP_ALLOWED_ORIGINS` | unset | Comma-separated browser origins (`https://app.example.org`) that may call `/mcp` from a web page. A listed origin gets the CORS preflight answer and `Access-Control-Allow-Origin`; the token is still checked. Unset, every cross-origin browser request gets 403. |
 
 `<user cache dir>` is Go's `os.UserCacheDir()`: `~/Library/Caches` on macOS, `$XDG_CACHE_HOME` or `~/.cache` on Linux, `%LocalAppData%` on Windows. The container image sets `BIBLICAL_ATLAS_CACHE_DIR=/tmp/biblical-atlas-mcp`.
 

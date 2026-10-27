@@ -134,19 +134,30 @@ function bundledChecksums() {
   return fs.readFileSync(CHECKSUMS, "utf8");
 }
 
+// extract unpacks the binary into a staging directory and moves it into
+// place only once unpacking succeeded: install() skips when BIN_PATH exists,
+// so a half-written binary there would never be replaced.
 function extract(archive) {
-  if (archive.endsWith(".zip")) {
-    const q = (s) => `'${s.replace(/'/g, "''")}'`;
-    execFileSync(
-      "powershell",
-      ["-NoProfile", "-NonInteractive", "-Command", `Expand-Archive -Force -LiteralPath ${q(archive)} -DestinationPath ${q(BIN_DIR)}`],
-      { stdio: ["ignore", "ignore", "inherit"] }
-    );
-  } else {
-    execFileSync("tar", ["-xzf", archive, "-C", BIN_DIR, BIN_NAME], { stdio: ["ignore", "ignore", "inherit"] });
-  }
-  if (process.platform !== "win32") {
-    fs.chmodSync(BIN_PATH, 0o755);
+  fs.mkdirSync(BIN_DIR, { recursive: true });
+  const stage = fs.mkdtempSync(path.join(BIN_DIR, ".extract-"));
+  try {
+    if (archive.endsWith(".zip")) {
+      const q = (s) => `'${s.replace(/'/g, "''")}'`;
+      execFileSync(
+        "powershell",
+        ["-NoProfile", "-NonInteractive", "-Command", `Expand-Archive -Force -LiteralPath ${q(archive)} -DestinationPath ${q(stage)}`],
+        { stdio: ["ignore", "ignore", "inherit"] }
+      );
+    } else {
+      execFileSync("tar", ["-xzf", archive, "-C", stage, BIN_NAME], { stdio: ["ignore", "ignore", "inherit"] });
+    }
+    const bin = path.join(stage, BIN_NAME);
+    if (process.platform !== "win32") {
+      fs.chmodSync(bin, 0o755);
+    }
+    fs.renameSync(bin, BIN_PATH);
+  } finally {
+    fs.rmSync(stage, { recursive: true, force: true });
   }
 }
 
@@ -183,4 +194,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { assetName, download, expectedSum, verify, install, BIN_PATH };
+module.exports = { assetName, download, expectedSum, verify, extract, install, BIN_PATH };

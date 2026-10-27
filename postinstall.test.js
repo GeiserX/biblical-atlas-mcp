@@ -11,7 +11,8 @@ const { test, mock, afterEach } = require("node:test");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { assetName, download, expectedSum, verify, install, BIN_PATH } = require("./postinstall.js");
+const { execFileSync } = require("node:child_process");
+const { assetName, download, expectedSum, verify, extract, install, BIN_PATH } = require("./postinstall.js");
 
 const tmpFile = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), "bam-")), "a.tar.gz");
 
@@ -103,4 +104,27 @@ test("install refuses to run without the bundled checksums.txt", async () => {
   }
   fakeGet({});
   await assert.rejects(install(), /checksums\.txt is missing/);
+});
+
+test("a truncated archive leaves no binary behind", (t) => {
+  if (process.platform === "win32" || fs.existsSync(BIN_PATH)) {
+    t.skip("needs tar and an empty bin directory");
+    return;
+  }
+  const binDir = path.dirname(BIN_PATH);
+  const hadBinDir = fs.existsSync(binDir);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ba-extract-"));
+  t.after(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+    if (!hadBinDir) fs.rmSync(binDir, { recursive: true, force: true });
+  });
+  // Random bytes do not compress, so cutting the archive in half cuts the
+  // binary in half too, and tar writes part of it before it fails.
+  fs.writeFileSync(path.join(dir, path.basename(BIN_PATH)), crypto.randomBytes(1 << 20));
+  const archive = path.join(dir, "a.tar.gz");
+  execFileSync("tar", ["-czf", archive, "-C", dir, path.basename(BIN_PATH)]);
+  const whole = fs.readFileSync(archive);
+  fs.writeFileSync(archive, whole.subarray(0, whole.length >> 1));
+  assert.throws(() => extract(archive));
+  assert.strictEqual(fs.existsSync(BIN_PATH), false);
 });

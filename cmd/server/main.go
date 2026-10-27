@@ -141,6 +141,9 @@ func httpHandler(s *server.MCPServer, token string, origins []string) http.Handl
 		http.Error(w, "cross-origin request refused; list the origin in MCP_ALLOWED_ORIGINS to allow it", http.StatusForbidden)
 	}))
 	mcpHandler = cop.Handler(mcpHandler)
+	// Outermost: a CORS preflight carries no token, so it is answered
+	// before bearerAuth sees it.
+	mcpHandler = allowOrigins(mcpHandler, origins)
 
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", mcpHandler)
@@ -152,6 +155,41 @@ func httpHandler(s *server.MCPServer, token string, origins []string) http.Handl
 }
 
 // limitBody answers 413 to a body over limit bytes and hands the rest on.
+// corsHeaders are the request headers a browser page may send to /mcp.
+const corsHeaders = "Authorization, Content-Type, Accept, MCP-Protocol-Version, Mcp-Method, Mcp-Name"
+
+// allowOrigins gives the origins in MCP_ALLOWED_ORIGINS the CORS answers a
+// browser needs to call /mcp: a preflight reply, and Access-Control-Allow-Origin
+// on every response. Other origins get no CORS headers, so the browser keeps
+// blocking them even where CrossOriginProtection lets a request through.
+func allowOrigins(next http.Handler, origins []string) http.Handler {
+	if len(origins) == 0 {
+		return next
+	}
+	listed := make(map[string]bool, len(origins))
+	for _, o := range origins {
+		listed[o] = true
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if !listed[origin] {
+			next.ServeHTTP(w, r)
+			return
+		}
+		h := w.Header()
+		h.Add("Vary", "Origin")
+		h.Set("Access-Control-Allow-Origin", origin)
+		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+			h.Set("Access-Control-Allow-Methods", "POST")
+			h.Set("Access-Control-Allow-Headers", corsHeaders)
+			h.Set("Access-Control-Max-Age", "600")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func limitBody(next http.Handler, limit int64) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil && r.Body != http.NoBody {
