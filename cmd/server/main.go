@@ -65,7 +65,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	s := newServer(store)
 
 	if cfg.Transport == "stdio" {
-		logger.Printf("%s on stdio, data from %s", version.String(), store.Source())
+		logger.Printf("%s on stdio, data from %s", version.String(), store.LogSource())
 		stdio := server.NewStdioServer(s)
 		stdio.SetErrorLogger(logger)
 		if err := stdio.Listen(ctx, stdin, stdout); err != nil && !errors.Is(err, context.Canceled) {
@@ -81,7 +81,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		return 1
 	}
 	srv := &http.Server{
-		Handler:           httpHandler(s, cfg.AuthToken),
+		Handler:           httpHandler(s, cfg.AuthToken, cfg.AllowedOrigins),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		// A tool call can wait for the first download, so the write limit
@@ -89,7 +89,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		WriteTimeout: cfg.Timeout + 30*time.Second,
 		IdleTimeout:  2 * time.Minute,
 	}
-	logger.Printf("%s listening on http://%s/mcp, data from %s", version.String(), ln.Addr(), store.Source())
+	logger.Printf("%s listening on http://%s/mcp, data from %s", version.String(), ln.Addr(), store.LogSource())
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
 	select {
@@ -107,11 +107,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 }
 
 func newServer(store *atlas.Store) *server.MCPServer {
-	s := server.NewMCPServer("biblical-atlas-mcp", version.Version,
-		server.WithToolCapabilities(false),
-		server.WithRecovery(),
-		server.WithInstructions(tools.Instructions),
-	)
+	s := server.NewMCPServer("biblical-atlas-mcp", version.Version, tools.ServerOptions()...)
 	tools.Register(s, store)
 	return s
 }
@@ -119,15 +115,33 @@ func newServer(store *atlas.Store) *server.MCPServer {
 // maxBody caps one request to /mcp. A tool call is a few hundred bytes.
 const maxBody = 1 << 20
 
+// maxInFlight caps the /mcp requests served at once. A search or a long
+// find_connection takes milliseconds, so a full house means a flood, and the
+// rest get 503 instead of queuing.
+const maxInFlight = 32
+
 // httpHandler serves /mcp (stateless streamable HTTP with no GET event
-// stream, behind the bearer check when a token is set) and /healthz (no
-// auth, no data access).
-func httpHandler(s *server.MCPServer, token string) http.Handler {
-	var mcpHandler http.Handler = limitBody(server.NewStreamableHTTPServer(s,
-		server.WithStateLess(true), server.WithDisableStreaming(true)), maxBody)
+// stream) and /healthz (no auth, no data access). /mcp refuses cross-origin
+// browser requests from origins not listed, checks the bearer token when one
+// is set, caps concurrent requests and caps the body.
+func httpHandler(s *server.MCPServer, token string, origins []string) http.Handler {
+	var mcpHandler http.Handler = server.NewStreamableHTTPServer(s,
+		server.WithStateLess(true), server.WithDisableStreaming(true))
+	mcpHandler = limitBody(mcpHandler, maxBody)
+	mcpHandler = limitInFlight(mcpHandler, maxInFlight)
 	if token != "" {
 		mcpHandler = bearerAuth(mcpHandler, token)
 	}
+	// Origins are checked by config.Load, so an error here cannot happen.
+	cop := http.NewCrossOriginProtection()
+	for _, o := range origins {
+		_ = cop.AddTrustedOrigin(o)
+	}
+	cop.SetDenyHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "cross-origin request refused; list the origin in MCP_ALLOWED_ORIGINS to allow it", http.StatusForbidden)
+	}))
+	mcpHandler = cop.Handler(mcpHandler)
+
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", mcpHandler)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -157,11 +171,29 @@ func limitBody(next http.Handler, limit int64) http.Handler {
 	})
 }
 
-func bearerAuth(next http.Handler, token string) http.Handler {
-	want := []byte("Bearer " + token)
+// limitInFlight answers 503 when n requests are already being served.
+func limitInFlight(next http.Handler, n int) http.Handler {
+	slots := make(chan struct{}, n)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		got := []byte(r.Header.Get("Authorization"))
-		if subtle.ConstantTimeCompare(got, want) != 1 {
+		select {
+		case slots <- struct{}{}:
+			defer func() { <-slots }()
+			next.ServeHTTP(w, r)
+		default:
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, "too many requests in flight; retry shortly", http.StatusServiceUnavailable)
+		}
+	})
+}
+
+// bearerAuth wants "Authorization: Bearer <token>". The scheme is matched
+// without regard to case, as RFC 9110 says; the token is compared in
+// constant time.
+func bearerAuth(next http.Handler, token string) http.Handler {
+	want := []byte(token)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		scheme, got, ok := strings.Cut(r.Header.Get("Authorization"), " ")
+		if !ok || !strings.EqualFold(scheme, "Bearer") || subtle.ConstantTimeCompare([]byte(got), want) != 1 {
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return

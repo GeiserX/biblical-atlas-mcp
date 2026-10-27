@@ -31,7 +31,7 @@ func (s *Store) loadCache() {
 	if err != nil || int64(len(body)) > s.maxBytes {
 		return
 	}
-	sn, err := s.build(body, meta.ETag, s.opt.URL, meta.FetchedAt)
+	sn, err := s.build(body, meta.ETag, s.Source(), meta.FetchedAt)
 	if err != nil {
 		s.opt.Logf("ignoring the disk cache: %v", err)
 		return

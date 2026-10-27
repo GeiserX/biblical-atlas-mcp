@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -79,12 +82,59 @@ func NewStore(opt Options) *Store {
 	}
 }
 
-// Source is the file path or URL the store reads.
+// Source names what the store reads, safe to show a client: the URL
+// without user info, query or fragment, or "local file <name>" with the
+// directory left out.
 func (s *Store) Source() string {
+	if s.opt.File != "" {
+		return "local file " + filepath.Base(s.opt.File)
+	}
+	return RedactURL(s.opt.URL)
+}
+
+// LogSource names what the store reads for the operator's log: the full
+// file path, or the URL without user info, query or fragment.
+func (s *Store) LogSource() string {
 	if s.opt.File != "" {
 		return s.opt.File
 	}
-	return s.opt.URL
+	return RedactURL(s.opt.URL)
+}
+
+// RedactURL drops the user info, query and fragment of a URL, where a
+// credential could sit.
+func RedactURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "(unreadable URL)"
+	}
+	u.User, u.RawQuery, u.ForceQuery, u.Fragment, u.RawFragment = nil, "", false, "", ""
+	return u.String()
+}
+
+// scrub replaces the raw URL and file path in an error text with the forms
+// Source gives, so an error a client sees names neither.
+func (s *Store) scrub(msg string) string {
+	msg = s.scrubURL(msg)
+	if s.opt.File != "" {
+		msg = strings.ReplaceAll(msg, s.opt.File, "local file "+filepath.Base(s.opt.File))
+	}
+	return msg
+}
+
+// scrubURL replaces the raw URL in a text with its redacted form.
+func (s *Store) scrubURL(msg string) string {
+	if s.opt.URL != "" {
+		if u, err := url.Parse(s.opt.URL); err == nil && u.User != nil {
+			// The HTTP client prints the URL with the password masked as
+			// "***"; url.Redacted masks it as "xxxxx".
+			masked := strings.Replace(u.String(), u.User.String()+"@", u.User.Username()+":***@", 1)
+			msg = strings.ReplaceAll(msg, masked, RedactURL(s.opt.URL))
+			msg = strings.ReplaceAll(msg, u.Redacted(), RedactURL(s.opt.URL))
+		}
+		msg = strings.ReplaceAll(msg, s.opt.URL, RedactURL(s.opt.URL))
+	}
+	return msg
 }
 
 // Start begins the first load in the background. It never blocks.
@@ -128,7 +178,7 @@ func (s *Store) unavailable(err error) error {
 	if err == nil {
 		err = errors.New("no data loaded")
 	}
-	return fmt.Errorf("the atlas data is not available: %v (source %s). The next call tries again", err, s.Source())
+	return fmt.Errorf("the atlas data is not available: %s (source %s). The next call tries again", s.scrub(err.Error()), s.Source())
 }
 
 // Status reports the freshness of the served copy.
@@ -140,7 +190,7 @@ func (s *Store) Status() Status {
 		st.LoadedAt = sn.LoadedAt
 		if s.lastErr != nil {
 			st.Stale = true
-			st.RefreshError = s.lastErr.Error()
+			st.RefreshError = s.scrub(s.lastErr.Error())
 		}
 	}
 	return st
@@ -209,10 +259,11 @@ func (s *Store) fail(err error) {
 	s.lastAttempt = s.now()
 	s.nextCheck = s.lastAttempt.Add(s.opt.TTL)
 	s.mu.Unlock()
+	msg := s.scrubURL(err.Error())
 	if s.snap.Load() != nil {
-		s.opt.Logf("refresh failed, still serving the copy loaded before: %v", err)
+		s.opt.Logf("refresh failed, still serving the copy loaded before: %s", msg)
 	} else {
-		s.opt.Logf("load failed: %v", err)
+		s.opt.Logf("load failed: %s", msg)
 	}
 }
 
@@ -254,7 +305,7 @@ func (s *Store) publish(sn *Snapshot) {
 	s.snap.Store(sn)
 	f := sn.File
 	s.opt.Logf("loaded %s generated %s from %s: %d people, %d places, %d events; %d dangling references skipped, %d citations and %d event passages not parsed",
-		sn.Format, sn.Generated, sn.Source, len(f.People), len(f.Places), len(f.Events),
+		sn.Format, sn.Generated, s.LogSource(), len(f.People), len(f.Places), len(f.Events),
 		sn.Stats.Dangling, sn.Stats.BadCitations, sn.Stats.BadEventPassages)
 	for _, w := range sn.Warnings() {
 		s.opt.Logf("warning: %s", w)
@@ -286,7 +337,7 @@ func (s *Store) fetch() {
 		s.succeed(at)
 		return
 	case resp.StatusCode != http.StatusOK:
-		s.fail(fmt.Errorf("%s answered HTTP %d", s.opt.URL, resp.StatusCode))
+		s.fail(fmt.Errorf("%s answered HTTP %d", s.Source(), resp.StatusCode))
 		return
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, s.maxBytes+1))
@@ -299,7 +350,7 @@ func (s *Store) fetch() {
 		return
 	}
 	etag := resp.Header.Get("ETag")
-	sn, err := s.build(body, etag, s.opt.URL, at)
+	sn, err := s.build(body, etag, s.Source(), at)
 	if err != nil {
 		s.fail(err)
 		return
@@ -332,7 +383,7 @@ func (s *Store) loadFile() {
 		s.fail(err)
 		return
 	}
-	sn, err := s.build(body, "", s.opt.File, at)
+	sn, err := s.build(body, "", s.Source(), at)
 	if err != nil {
 		s.fail(err)
 		return

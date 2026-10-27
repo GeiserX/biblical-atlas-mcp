@@ -7,7 +7,7 @@ go 1.27
 toolchain go1.27.3
 
 require (
-	github.com/mark3labs/mcp-go v1.3.0
+	github.com/mark3labs/mcp-go v1.4.0
 	golang.org/x/text v0.43.0
 )
 

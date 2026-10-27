@@ -60,6 +60,9 @@ func TestRejections(t *testing.T) {
 		{"BIBLICAL_ATLAS_TIMEOUT", "6m"},
 		{"BIBLICAL_ATLAS_TIMEOUT", "x"},
 		{"TRANSPORT", "sse"},
+		{"MCP_AUTH_TOKEN", "two words"},
+		{"MCP_ALLOWED_ORIGINS", "https://ok.example, not an origin"},
+		{"MCP_ALLOWED_ORIGINS", "https://app.example/path"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.key+"="+tc.value, func(t *testing.T) {
@@ -68,5 +71,36 @@ func TestRejections(t *testing.T) {
 				t.Fatalf("want an error naming %s, got %v", tc.key, err)
 			}
 		})
+	}
+}
+
+func TestTokenRequiredOffLoopback(t *testing.T) {
+	for _, addr := range []string{"0.0.0.0:8080", ":8080", "192.168.1.10:8080", "[::]:8080", "example.org:8080"} {
+		_, err := Load(env(map[string]string{"LISTEN_ADDR": addr}))
+		if err == nil || !strings.Contains(err.Error(), "MCP_AUTH_TOKEN is required") {
+			t.Errorf("LISTEN_ADDR %s without a token: got %v", addr, err)
+		}
+		if _, err := Load(env(map[string]string{"LISTEN_ADDR": addr, "MCP_AUTH_TOKEN": "t0ken"})); err != nil {
+			t.Errorf("LISTEN_ADDR %s with a token: %v", addr, err)
+		}
+		// stdio never listens, so it needs no token.
+		if _, err := Load(env(map[string]string{"LISTEN_ADDR": addr, "TRANSPORT": "stdio"})); err != nil {
+			t.Errorf("stdio with LISTEN_ADDR %s: %v", addr, err)
+		}
+	}
+	for _, addr := range []string{"127.0.0.1:8080", "localhost:8080", "[::1]:8080", "127.0.0.2:9000"} {
+		if _, err := Load(env(map[string]string{"LISTEN_ADDR": addr})); err != nil {
+			t.Errorf("loopback %s without a token: %v", addr, err)
+		}
+	}
+}
+
+func TestAllowedOrigins(t *testing.T) {
+	c, err := Load(env(map[string]string{"MCP_ALLOWED_ORIGINS": " https://a.example , http://localhost:3000,"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(c.AllowedOrigins, "|") != "https://a.example|http://localhost:3000" {
+		t.Fatalf("origins %q", c.AllowedOrigins)
 	}
 }
