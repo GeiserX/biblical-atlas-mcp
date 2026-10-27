@@ -29,7 +29,7 @@ It downloads the real data file, checks that its format is known, that no record
 | `cmd/server` | `run()`: flags, config, store, server, transports |
 | `internal/config` | Environment variables and their validation |
 | `internal/atlas` | The data file model, loading, refresh, disk cache, indexes, search and the Bible reference parser. No other package reads the file or the network. |
-| `internal/tools` | The nine tools, their output builders and argument helpers |
+| `internal/tools` | The ten tools, their output builders, output schemas and argument helpers |
 | `version` | Build metadata set by `-ldflags` |
 
 ## Release

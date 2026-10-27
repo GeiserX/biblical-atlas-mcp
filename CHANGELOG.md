@@ -4,6 +4,28 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking for HTTP deployments:** the server refuses to start in HTTP mode on a non-loopback address (`0.0.0.0`, a LAN address, the container's default) without `MCP_AUTH_TOKEN`. Add `-e MCP_AUTH_TOKEN=...` to `docker run`. On `127.0.0.1` the token stays optional.
+- Speaks MCP 2026-07-28 (mcp-go v1.4.0) alongside every earlier revision down to 2024-11-05, on stdio and HTTP: `server/discover`, the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers, and cache hints on `tools/list` (one hour, public). Older clients still use `initialize`.
+- Every tool declares an output schema and returns `structuredContent` next to the same JSON as text. Inputs are checked against a strict schema before the tool runs: an unknown parameter or an out-of-range value is a tool error naming the field.
+- `dataset_info` names the data source without credentials, query or fragment, and a local file by its name only. Load and refresh errors are scrubbed the same way.
+
+### Added
+
+- `get_records`: up to 20 records of any type in one call, with per-record errors and the records left out once the answer reaches about 160 KB.
+- English Bible book names and abbreviations (`Acts`, `2 Kings`, `Rev`) in `lookup_passage`, `list_events` and `search`. Answers still name the book in Spanish.
+- `search` puts a named Bible book first (`matched: book`), adds `passage` when the query reads as a reference, and returns `did_you_mean` when nothing matches.
+- `dataset_info` lists `filters`: the place kinds, offices, period kinds, event kinds and roles the loaded atlas uses.
+- Server title, description, website and icons in `initialize`, `server/discover` and `server.json`.
+- `MCP_ALLOWED_ORIGINS` lets named browser origins call `/mcp`; other cross-origin browser requests get 403.
+
+### Security
+
+- HTTP: at most 32 requests at once (the next gets 503 with `Retry-After`), the token compared in constant time, the `Bearer` scheme matched in any case, cross-origin browser requests refused.
+- The npm wrapper checks the download against the `checksums.txt` shipped inside the npm package instead of one fetched from the release, follows HTTPS redirects only and stops a download over 64 MB. It installs on first start when the package manager skipped install scripts (npm 12, pnpm, Bun).
+- Every GitHub Action is pinned to a commit, the container base images are pinned by digest, and CI adds govulncheck and CodeQL.
+
 ## [0.1.4]
 
 ### Security

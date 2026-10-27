@@ -13,13 +13,13 @@ biblical-atlas-mcp runs on your machine and reads the atlas's public data file f
 
 ### npm
 
-The npm package is a small wrapper. On install it downloads the release binary for your platform from the GitHub release of the same version, checks it against `checksums.txt` and starts it in stdio mode.
+The npm package is a small wrapper. It downloads the release binary for your platform from the GitHub release of the same version, checks it against the `checksums.txt` that ships inside the npm package (so the sums come with npm's provenance, not from the release), and starts it in stdio mode. The download runs on install, or on first start when the package manager skips install scripts, as npm 12, pnpm and Bun do by default.
 
 ```bash
 claude mcp add biblical-atlas -- npx -y biblical-atlas-mcp
 ```
 
-For Claude Desktop, Cursor and other clients that start stdio servers, add this to the client's `mcpServers` config:
+For Claude Desktop, Cursor and other clients that start stdio servers, add this to the client's `mcpServers` config (VS Code calls the key `servers`; the README has a block for it and for Codex):
 
 ```json
 {
@@ -51,14 +51,14 @@ A stdio client config that uses the binary directly:
 
 ### Container image
 
-The image starts in HTTP mode on port 8080. Tags are release versions only; there is no `latest` tag.
+The image starts in HTTP mode on port 8080, listening on every interface inside the container, so it needs a token: without `MCP_AUTH_TOKEN` it exits at start with a message saying so. Tags are release versions only; there is no `latest` tag.
 
 ```bash
-docker run --rm -p 127.0.0.1:8080:8080 ghcr.io/geiserx/biblical-atlas-mcp:v0.1.4
+docker run --rm -p 127.0.0.1:8080:8080 -e MCP_AUTH_TOKEN=change-me ghcr.io/geiserx/biblical-atlas-mcp:v0.1.4
 curl http://127.0.0.1:8080/healthz        # ok
 ```
 
-Point an HTTP client at `http://127.0.0.1:8080/mcp`. If you publish the port beyond your own machine, set `MCP_AUTH_TOKEN` and put a reverse proxy with TLS in front; see [Configuration](configuration.md).
+Point an HTTP client at `http://127.0.0.1:8080/mcp` with the header `Authorization: Bearer change-me`; [Configuration](configuration.md) has a client config. Put a reverse proxy with TLS in front if you publish the port beyond your own machine.
 
 ### From source
 

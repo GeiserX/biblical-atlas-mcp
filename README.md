@@ -9,7 +9,7 @@
   <a href="https://github.com/GeiserX/biblical-atlas-mcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/GeiserX/biblical-atlas-mcp?style=flat-square" alt="License"></a>
 </p>
 
-biblical-atlas-mcp is an MCP server that gives AI agents the [biblical-atlas](https://github.com/GeiserX/biblical-atlas) Bible atlas as nine read-only tools: people, places, events, reigns, letters, journeys and Bible passages. Answers carry the atlas id, a link to the record's card on [the atlas site](https://biblical-atlas.geiser.cloud/) where the record has one, and links to its sources: a list answer carries the first one and the total, and `get_record` returns them all. The atlas is in Spanish, and the server returns its names and summaries as they are.
+biblical-atlas-mcp is an MCP server that gives AI agents the [biblical-atlas](https://github.com/GeiserX/biblical-atlas) Bible atlas as ten read-only tools: people, places, events, reigns, letters, journeys and Bible passages. Answers carry the atlas id, a link to the record's card on [the atlas site](https://biblical-atlas.geiser.cloud/) where the record has one, and links to its sources: a list answer carries the first one and the total, and `get_record` returns them all. The atlas is in Spanish, and the server returns its names and summaries as they are.
 
 ## Features
 
@@ -25,7 +25,15 @@ biblical-atlas-mcp is an MCP server that gives AI agents the [biblical-atlas](ht
 
 ## Quick start
 
-With Node.js 18 or newer, add the server to Claude Code with `claude mcp add biblical-atlas -- npx -y biblical-atlas-mcp`, or to any client that starts stdio servers:
+Needs Node.js 18 or newer. The npm package downloads the release binary for your platform on first run and checks it against the checksums published with the package.
+
+| Client | Setup |
+| --- | --- |
+| Claude Code | `claude mcp add biblical-atlas -- npx -y biblical-atlas-mcp` |
+| Claude Desktop | `claude_desktop_config.json`: the `mcpServers` block below |
+| Cursor | `~/.cursor/mcp.json` or `.cursor/mcp.json`: the `mcpServers` block below |
+| VS Code | `.vscode/mcp.json`: the `servers` block below |
+| Codex | `~/.codex/config.toml`: the TOML block below |
 
 ```json
 {
@@ -35,13 +43,48 @@ With Node.js 18 or newer, add the server to Claude Code with `claude mcp add bib
 }
 ```
 
-Then ask "who was alive in 607 a.e.c.?"; the container image for HTTP clients, release binaries and every setting are in [Getting started](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/getting-started.md).
+```json
+{
+  "servers": {
+    "biblical-atlas": { "type": "stdio", "command": "npx", "args": ["-y", "biblical-atlas-mcp"] }
+  }
+}
+```
+
+```toml
+[mcp_servers.biblical-atlas]
+command = "npx"
+args = ["-y", "biblical-atlas-mcp"]
+```
+
+Then ask "who was alive in 607 a.e.c.?". The container image for HTTP clients, release binaries and every setting are in [Getting started](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/getting-started.md).
+
+## Tools
+
+All ten tools are read only: they never write, delete or call anything but the atlas's own data file, so there is no read-only mode to switch on. Each declares an output schema and returns its answer both as `structuredContent` and as JSON text.
+
+| Tool | What it answers |
+| --- | --- |
+| `search` | Records by name, Spanish ("Pablo") or a Bible book in Spanish or English ("Acts"); `did_you_mean` on a miss |
+| `get_record` | One record in full, with its sources |
+| `get_records` | Up to 20 records in one call |
+| `list_records` | Periods, letters, journeys, finds, tours, books, months; places of a kind; holders of an office |
+| `list_events` | Events by year, person, place, role, kind or Bible book |
+| `people_in_year` | Who was alive or active in a year, with the evidence |
+| `lookup_passage` | What the atlas has on a reference ("Hch 16:1" or "Acts 16:1") |
+| `find_connection` | The shortest chain of ties between two people |
+| `places_near` | Places within a radius of a place or a point |
+| `dataset_info` | Freshness, counts, and the values the `kind` and `role` filters accept |
+
+## Protocol
+
+The server speaks MCP 2026-07-28 and every earlier revision down to 2024-11-05, on stdio and on streamable HTTP. Clients that still start with `initialize` (Claude Code, Claude Desktop, Cursor and VS Code today) work as before; clients on 2026-07-28 get `server/discover`, stateless requests and cacheable tool lists from the same binary.
 
 ## Documentation
 
 - [Getting started](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/getting-started.md): every install path and a first call
 - [Configuration](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/configuration.md): every variable, flag and client config
-- [Usage](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/usage.md): the nine tools, their parameters and what they return
+- [Usage](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/usage.md): the ten tools, their parameters and what they return
 - [How it works](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/how-it-works.md): download, cache, refresh and offline use
 - [Development](https://github.com/GeiserX/biblical-atlas-mcp/blob/main/docs/development.md): build, test and release
 
