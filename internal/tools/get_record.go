@@ -22,15 +22,19 @@ const (
 var (
 	maxRelations     = 30
 	maxRecordSources = 50
+	// maxJourneyStops pages a place's journey stops. Jerusalem has 108; all
+	// of them made its answer 92 KB, over Claude Code's default result limit.
+	maxJourneyStops = 10
 )
 
 func getRecordTool() Tool {
 	return Tool{
 		Def: newTool("get_record", "Get one atlas record",
-			`Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search; for several records at once use get_records. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`,
+			`Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search; for several records at once use get_records. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time; a place's journey stops come 10 at a time.`,
 			mcp.WithString("type", mcp.Required(), mcp.Description("Record type, from search."), mcp.Enum(typeNames(atlas.Types)...)),
 			idOption("id", `Record id, from search, for example "pablo". Case is ignored.`, mcp.Required()),
 			offsetOption("relations_offset", "Person only: relations to skip. A person answer holds at most 30 relations; use next_relations_offset from the answer to read the rest."),
+			offsetOption("journey_stops_offset", "Place only: journey stops to skip. A place answer holds at most 10 journey stops; use next_journey_stops_offset from the answer to read the rest."),
 			offsetOption("sources_offset", "Sources to skip. An answer holds at most 50 of the record's sources; use next_sources_offset from the answer to read the rest."),
 			outputSchema(recordSchema),
 		),
@@ -54,6 +58,13 @@ func getRecord(c *Call) (*obj, error) {
 	if hasRelOffset && t != atlas.TypePerson {
 		return nil, errors.New("relations_offset is only accepted for type person")
 	}
+	stopOffset, hasStopOffset, err := wholeNumber(c.Args, "journey_stops_offset", 0, maxOffset, 0)
+	if err != nil {
+		return nil, err
+	}
+	if hasStopOffset && t != atlas.TypePlace {
+		return nil, errors.New("journey_stops_offset is only accepted for type place")
+	}
 	srcOffset, _, err := wholeNumber(c.Args, "sources_offset", 0, maxOffset, 0)
 	if err != nil {
 		return nil, err
@@ -68,7 +79,7 @@ func getRecord(c *Call) (*obj, error) {
 	case *atlas.Person:
 		personView(s, o, v, relOffset)
 	case *atlas.Place:
-		placeView(s, o, v)
+		placeView(s, o, v, stopOffset)
 	case *atlas.Event:
 		eventView(s, o, v)
 	case *atlas.Period:
@@ -283,7 +294,7 @@ func roleRefs(s *atlas.Snapshot, rs []atlas.RoleRef) []*obj {
 
 // --- place ----------------------------------------------------------------
 
-func placeView(s *atlas.Snapshot, o *obj, p *atlas.Place) {
+func placeView(s *atlas.Snapshot, o *obj, p *atlas.Place, stopOffset int) {
 	var names []*obj
 	for _, n := range p.Names {
 		if n.Name == p.Name && n.Note == "" && n.From == nil && n.To == nil {
@@ -362,12 +373,20 @@ func placeView(s *atlas.Snapshot, o *obj, p *atlas.Place) {
 		o.keep("events_total", len(evs))
 	}
 	o.set("letters", roleRefs(s, s.LettersByPlace[p.ID]))
+	all := s.StopsByPlace[p.ID]
+	lo, hi := window(len(all), stopOffset, maxJourneyStops)
 	var stops []*obj
-	for _, st := range s.StopsByPlace[p.ID] {
+	for _, st := range all[lo:hi] {
 		stops = append(stops, newObj().set("journey", ref(s, atlas.TypeJourney, st.Journey.ID)).keep("order", st.Stop.Order).
 			set("date", date(st.Stop.Date)).set("reference", st.Stop.Reference))
 	}
 	o.set("journey_stops", stops)
+	if hi-lo < len(all) {
+		o.keep("journey_stops_total", len(all))
+	}
+	if hi < len(all) {
+		o.keep("next_journey_stops_offset", hi)
+	}
 	o.set("finds", refs(s, atlas.TypeFind, s.FindsByPlace[p.ID]))
 	o.set("seat_of", refs(s, atlas.TypePeriod, s.SeatsByPlace[p.ID]))
 }
