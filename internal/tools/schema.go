@@ -103,7 +103,7 @@ var recordSchema = object(withProps(itemProps, schema{
 	"dataset":                   strS,
 	"sources_total":             typed("integer", "All the record's sources, when they fill more than one answer."),
 	"next_sources_offset":       typed("integer", "Pass as sources_offset to read the next sources."),
-	"journey_stops_total":       typed("integer", "Place only: all the place's journey stops, when they fill more than one answer."),
+	"journey_stops_total":       typed("integer", "Place only: all the place's journey stops, when the answer does not hold all of them."),
 	"next_journey_stops_offset": typed("integer", "Place only: pass as journey_stops_offset to read the next journey stops."),
 }), "type", "id")
 

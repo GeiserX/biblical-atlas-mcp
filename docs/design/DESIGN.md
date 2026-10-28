@@ -154,13 +154,14 @@ Output: the paging object. Each result is an `item` plus `score` and `matched`, 
 
 ### 4.2 `get_record`
 
-Description: `Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time.`
+Description: `Get one atlas record in full: a person with family, relations, offices and events; a place with coordinates, candidate sites, the gates, towers and other sites inside it, and what happened there; an event with its date, people, places and Bible passages; or a period, letter, journey with its stops, find, tour, Bible book, Hebrew month or calendar topic. Needs the type and the id from search. Returns the record's sources with their links, 50 at a time; a person's relations carry their first source and a count, and come 30 at a time; a place's journey stops come 10 at a time.`
 
 | Parameter | Type | Default | Rules |
 | --- | --- | --- | --- |
 | `type` | string | required | One of the types in 3.1 |
 | `id` | string | required | Exact id. Case is ignored. |
 | `relations_offset` | integer | 0 | Person only; any other type rejects it. Relations to skip. |
+| `journey_stops_offset` | integer | 0 | Place only; any other type rejects it. Journey stops to skip. |
 | `sources_offset` | integer | 0 | The record's sources to skip. |
 
 Every record returns `type`, `id`, `name`, `url`, `summary`, `status`, `checked_on`, `reason` (`razon`), `links` (`enlaces` as `{title,url,kind}`), `sources` (50 per answer from `sources_offset`, with `sources_total` when the answer does not hold them all and `next_sources_offset` when more follow; the most cited places and people have well over 100, most of them Bible chapters), `not_claimed` (`no_afirmamos`), `note`, `alternatives` (each a `date` plus `note` and `sources`) and `history` (each `{date,change,source}`). Then, by type:
