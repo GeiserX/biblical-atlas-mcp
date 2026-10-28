@@ -99,10 +99,12 @@ func pageSchema(item schema, more schema, required ...string) schema {
 
 // recordSchema is one record in full, as get_record returns it.
 var recordSchema = object(withProps(itemProps, schema{
-	"links":               arrayOf(sourceSchema),
-	"dataset":             strS,
-	"sources_total":       typed("integer", "All the record's sources, when they fill more than one answer."),
-	"next_sources_offset": typed("integer", "Pass as sources_offset to read the next sources."),
+	"links":                     arrayOf(sourceSchema),
+	"dataset":                   strS,
+	"sources_total":             typed("integer", "All the record's sources, when they fill more than one answer."),
+	"next_sources_offset":       typed("integer", "Pass as sources_offset to read the next sources."),
+	"journey_stops_total":       typed("integer", "Place only: all the place's journey stops, when they fill more than one answer."),
+	"next_journey_stops_offset": typed("integer", "Place only: pass as journey_stops_offset to read the next journey stops."),
 }), "type", "id")
 
 func outputSchema(s schema) mcp.ToolOption {

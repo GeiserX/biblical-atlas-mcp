@@ -626,6 +626,29 @@ func TestSourcesPage(t *testing.T) {
 	}
 }
 
+// TestJourneyStopsPage pages a place's journey stops: past the last stop the
+// answer is empty but still says how many there are, and the offset is
+// refused for any type but place.
+func TestJourneyStopsPage(t *testing.T) {
+	old := maxJourneyStops
+	maxJourneyStops = 1
+	t.Cleanup(func() { maxJourneyStops = old })
+	first, isErr := call(t, "get_record", map[string]any{"type": "place", "id": "jerusalen"})
+	if isErr || !strings.Contains(first, `"journey_stops":[{"journey":{"type":"journey","id":"primer-viaje"`) ||
+		strings.Contains(first, "journey_stops_total") || strings.Contains(first, "next_journey_stops_offset") {
+		t.Fatalf("first page: %s", first)
+	}
+	past, isErr := call(t, "get_record", map[string]any{"type": "place", "id": "jerusalen", "journey_stops_offset": 1.0})
+	if isErr || strings.Contains(past, `"journey_stops":[`) || !strings.Contains(past, `"journey_stops_total":1`) ||
+		strings.Contains(past, "next_journey_stops_offset") {
+		t.Fatalf("past the last stop: %s", past)
+	}
+	wrong, isErr := call(t, "get_record", map[string]any{"type": "person", "id": "pablo", "journey_stops_offset": 1.0})
+	if !isErr || !strings.Contains(wrong, "only accepted for type place") {
+		t.Fatalf("person with journey_stops_offset: %s", wrong)
+	}
+}
+
 // TestBatchBudget lowers the size budget so get_records stops after the
 // first record and hands the rest back, in order.
 func TestBatchBudget(t *testing.T) {

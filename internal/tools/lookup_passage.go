@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxPassageRefs = 30
+	maxPassageRefs = 25
 	notYetRead     = "The atlas has not yet read this book verse by verse. Absence of an event here does not mean the passage has none."
 )
 

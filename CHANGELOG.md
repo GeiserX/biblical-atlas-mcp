@@ -2,6 +2,13 @@
 
 All notable changes to this project are listed here, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- `get_record` for a place pages its journey stops 10 at a time (`journey_stops_offset`, with `journey_stops_total` and `next_journey_stops_offset` in the answer). Jerusalem's 108 stops made its answer 92 KB, which Claude Code refuses with its default 25,000-token limit; it is 57 KB now.
+- `lookup_passage` lists at most 25 people, places and citing records instead of 30, so a whole book with `limit` 50 stays under the 70 KB answer cap (1 Chronicles was 70.5 KB).
+
 ## [0.2.0] - 2026-10-27
 
 ### Changed
