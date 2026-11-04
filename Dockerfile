@@ -1,7 +1,7 @@
 # Both bases are pinned by digest; dependabot moves the digests. The builder
 # is go1.27.3 exactly, the toolchain go.mod asks for: the golang image sets
 # GOTOOLCHAIN=local, so a floating 1.27 tag would not enforce it.
-FROM --platform=$BUILDPLATFORM golang:1.27.3@sha256:9048d5e7751706200eb1719c7dae0436950d362f29a1da91fa05e5c63867c60f AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b AS builder
 ARG TARGETOS TARGETARCH VERSION=dev COMMIT=none DATE=unknown
 WORKDIR /src
 COPY go.mod go.sum ./
