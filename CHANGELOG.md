@@ -6,7 +6,7 @@ All notable changes to this project are listed here, newest first. The format fo
 
 ### Security
 
-- Built with Go 1.27.4. Go 1.27.3 could crash an HTTP/1 server when a request body passed the size limit while the handler wrote response headers (GO-2026-6859). The HTTP transport limits the request body, so it was exposed; stdio was not.
+- Built with Go 1.27.4. Go 1.27.3 can crash an HTTP/1 server that uses `MaxBytesReader` when the handler reads the request body at the same time as it writes a response header (GO-2026-6859). The HTTP transport of this server reads the whole body before it writes anything, so we know of no way to trigger the crash here. The update removes the affected code from the build.
 
 ### Changed
 
