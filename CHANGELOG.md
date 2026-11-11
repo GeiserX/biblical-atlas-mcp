@@ -2,6 +2,16 @@
 
 All notable changes to this project are listed here, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.2.2] - 2026-11-11
+
+### Security
+
+- Built with Go 1.27.4. Go 1.27.3 could crash an HTTP/1 server when a request body passed the size limit while the handler wrote response headers (GO-2026-6859). The HTTP transport limits the request body, so it was exposed; stdio was not.
+
+### Changed
+
+- mcp-go 1.5.0.
+
 ## [0.2.1] - 2026-10-28
 
 ### Fixed
