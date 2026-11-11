@@ -2,6 +2,12 @@
 
 All notable changes to this project are listed here, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Security
+
+- Built with go1.27.4, which fixes GO-2026-6859 (CVE-2026-97054): an HTTP/1 server could crash when a request body went over its size limit while the handler wrote response headers. It affects the server in HTTP mode.
+
 ## [0.2.1] - 2026-10-28
 
 ### Fixed
